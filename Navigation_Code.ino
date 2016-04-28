@@ -124,7 +124,7 @@ void loop() {
 }
 
 /************** Setup Code ******************/
-/** RFSetup
+/** RfFSetup
  * Created no date (Keystone)
  * Modified 4/17/2016 (Yichao Peng)
  * The program setup the RF communication with GPS system
@@ -484,6 +484,7 @@ Serial.print("Color: ");
 colorSensor();
 Serial.println();
 }
+<<<<<<< HEAD
 
 
 
@@ -494,3 +495,45 @@ Serial.println();
 
 
 
+=======
+// Control Code 
+void controlX(int xRefIn, int xTermIn) {
+  if (x.marker < xterm) {
+    delta_y = y.marker-yref;
+    theta_desired = -1/2*arctan(delta_y);
+    delta_theta = marker.theta - theta_desired;
+    if (delta_theta > 0) {
+      analogout(left_wheel, 255);
+      delta_PWM = int(abs(delta_theta*k));
+      anologout(right_wheel, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
+    } else {
+      analogout(right_wheel, 255);
+      delta_PWM = int(abs(delta_theta*k));
+      analogout(left_wheel, 255-delta_PWM);
+    }
+    delta(500);
+    }
+}
+  
+  
+  void controlY(int yRefIn, int yTermIn) {
+  if (y.marker < yterm) {
+    delta_x = x.marker-xref;
+    theta_desired = -1/2*arctan(delta_x);
+    delta_theta = marker.theta-pi/2 - theta_desired;
+    if (delta_theta > 0) {
+      analogout(left_wheel, 255);
+      delta_PWM = int(abs(delta_theta*k));
+      anologout(right_wheel, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
+    } else {
+      analogout(right_wheel, 255);
+      delta_PWM = int(abs(delta_theta*k));
+      analogout(left_wheel, 255-delta_PWM);
+    }
+    delta(500);
+    }
+}
+  
+  }
+}
+>>>>>>> pr/5
