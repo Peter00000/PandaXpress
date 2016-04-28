@@ -1,6 +1,6 @@
 /************* Program variables ************/
 int state = 1;
-int photoresistorSignal;
+float photoresistorSignal;
 float duration, inches;       //ultrasonic reading
 bool is_boulder_green;
 float boulder_length, boulder_height, boulder_area, voltage;
