@@ -13,29 +13,29 @@ const long upper    = 1200;   //filter out unwanted data in ultrasonic reading
 const long lower    = 150;    //only apply when averaging multiple trials
 
 /************** Pin Variables ***************/
-int a = 1;  int b = 2; //Kaitlin, Maria, please verify the digital pin asssignments
-int trig_1 = 3;  //left and top
-int trig_2 = 4; //right and side
-int e = 5;  int f = 6;
-int g = 7;  int RF_TX = 9;
-int RF_RX = 8;  int j = 10;
-int k = 11;
+int in3 = 2;  int in4 = 3; //Kaitlin, Maria, please verify the digital pin asssignments
+int enb = 4;  //left and top
+int ena = 5; //right and side
+int in1 = 6;  int in2 = 7;
+int LED = 9;  
+int RF_TX = 10;
+int RF_RX = 11;
 int photoresist_pin     = 0;
-int ultrasound_top_pin  = 1;
-int ultrasound_left_pin = 2;
+int ultrasound_left_pin = 1;
+int ultrasound_top_pin  = 2;
 int ultrasound_right_pin= 3;
 int ultrasound_side_pin = 4;
 
 /********* Fakebot testing pin var **********/
-int ena = 5;  int enb = 4; //need better name for the motor pins
-int in1 = 6;  int in3 = 2; 
-int in2 = 7;  int in4 = 3;
-int trig = 3;       //attach pin 3 to Trig
-int echo = 4;       //attach pin 4 to Echo
-int trig2 = 5;      //attach pin 5 to Trig on second sensor
-int echo2 = 6;      //attach pin 6 to Echo on second sensor 
-int green = 10;
-int red = 11;
+// int ena = 5;  int enb = 4; //need better name for the motor pins
+// int in1 = 6;  int in3 = 2; 
+// int in2 = 7;  int in4 = 3;
+// int trig = 3;       //attach pin 3 to Trig
+// int echo = 4;       //attach pin 4 to Echo
+// int trig2 = 5;      //attach pin 5 to Trig on second sensor
+// int echo2 = 6;      //attach pin 6 to Echo on second sensor 
+// int green = 10;
+// int red = 11;
 
 /********* Initiate RF GPS System ***********/
 #include <SoftwareSerial.h>
