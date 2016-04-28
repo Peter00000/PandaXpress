@@ -1,7 +1,7 @@
 /************* Program variables ************/
 int state = 1;
 float photoresistorSignal;
-float duration, inches;       //ultrasonic reading
+float duration, duration2, duration3, inches, inches2, inchesTop;   //ultrasonic reading
 bool is_boulder_green;
 float boulder_length, boulder_height, boulder_area, voltage;
 //
@@ -12,14 +12,17 @@ const int repeatNo  = 5;      //for multiple ultrasonic read
 const int interval  = 200;    //ms wait
 const long upper    = 1200;   //filter out unwanted data in ultrasonic reading
 const long lower    = 150;    //only apply when averaging multiple trials
+const float arm_width   = 13;   //inches between left and right ultrasonic sensor
+const float arm_height  = 15;   //inches between top ultrasonic and ground
+const float color_cutoff = 3.7; //color cutoff voltage
+const int k = 150;              //constant relate delta_angle to delta_PWM
 
 /************** Pin Variables ***************/
-int in3 = 2;  int in4 = 3;
-int enb = 4;  
-int ena = 5; 
+int in3 = 2;  int in4 = 3;  
+int enb = 4;  int ena = 5; 
 int in1 = 6;  int in2 = 7;
 int LED = 9;  
-int RF_TX = 10;
+int RF_TX = 10; 
 int RF_RX = 11;
 int trig_left_top = 12;
 int trig_right_side = 13;
@@ -44,8 +47,6 @@ void setup() {
   RFSetup();
   motorSetup();
   ultrasonicSetup();
-  pinMode(green, OUTPUT);
-  pinMode(red, OUTPUT);
 }
 
 /** loop  (4/14/2016  Austin)
@@ -125,12 +126,18 @@ void RFSetup() {
   //delay(1000);
 }
 
-/** motorSetup  (Paulo)
- * setting up ultasonic sensor */ 
+/** motorSetup  (Paulo) */ 
 void motorSetup() {
   pinMode(ena,OUTPUT);    pinMode(enb,OUTPUT);
   pinMode(in1,OUTPUT);    pinMode(in3,OUTPUT);
   pinMode(in2,OUTPUT);    pinMode(in4,OUTPUT);
+}
+
+/** ultrasonicSetup (4/28/2016 Stephen) */
+void ultrasonicSetup() {
+  pinMode(trig_left_top, OUTPUT);
+  pinMode(trig_right_side, OUTPUT);
+  pinMode(LED, OUTPUT);
 }
 
 /************** Motion Code *****************/
@@ -158,9 +165,25 @@ void driveForwardXDirection(float xValue) {
   while (marker.x < xValue) {
     motorStraight();
     RFLoop();
-    //digitalWrite(green, HIGH);
-    //digitalWrite(red, HIGH);
   }
+}
+
+/** controlX (4/28/2016 Mitchell) */
+void controlX(int xRefIn, int xTermIn) {
+  if (x.marker < xterm) {
+    delta_y       = marker.y-yref;
+    theta_desired = -1/2*arctan(delta_y);
+    delta_theta   = marker.theta - theta_desired;
+    delta_PWM     = int(abs(delta_theta*k));
+    if (delta_theta > 0) {
+      analogout(left_wheel, 255);
+      anologout(right_wheel, 255-delta_PWM); 
+    } else {
+      analogout(right_wheel, 255);
+      analogout(left_wheel, 255-delta_PWM);
+    }
+    delay(400);
+    }
 }
 
 /** driveForwardYDirection (4/14/2016 Austin)
@@ -170,8 +193,24 @@ void driveForwardYDirection(float yValue) {
   while (marker.y - yValue < -(tolerance) || marker.y - yValue > tolerance) {
     motorStraight();
     RFLoop();
-    //digitalWrite(green, HIGH);
-    //digitalWrite(red, HIGH);
+  }
+}
+
+/** controlY (4/28/2016 Mitchell) */
+void controlY(int yRefIn, int yTermIn) {
+  if (y.marker < yterm) {
+    delta_x       = marker.x-xref;
+    theta_desired = -1/2*arctan(delta_x);
+    delta_theta   = marker.theta-pi/2 - theta_desired;
+    delta_PWM     = int(abs(delta_theta*k));
+    if (delta_theta > 0) {
+      analogout(left_wheel, 255);
+      anologout(right_wheel, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
+    } else {
+      analogout(right_wheel, 255);
+      analogout(left_wheel, 255-delta_PWM);
+    }
+    delay(400);
   }
 }
 
@@ -227,13 +266,6 @@ void RFLoop() {
     Serial.println("Marker is not registering");
     //delay(500);
   }
-}
-
-void ultrasoniceSetup() {
-pinMode(trig_left_top, OUTPUT);
-pinMode(trig_right_side, OUTPUT);
-Serial.begin(9600);
-pinMode(LED, OUTPUT);
 }
 
  //Gives off one single ping from left sensor
@@ -297,8 +329,9 @@ float microsecondsToCentimeters(long microseconds)
   return microseconds / 29.41 / 2.0;
 }
 
-//For taking multiple pings and average them
-//Filters out number outside the range of expected values, return 0
+/** MultiplePing (Yichao)
+ * For taking multiple pings and average them
+ * Filters out number outside the range of expected values, return 0 */
 float multiplePing(int trialNo, int delayTime, long lowerLimit, long upperLimit){
   float duration = 0;
   int trialNum = 0;
@@ -310,9 +343,8 @@ float multiplePing(int trialNo, int delayTime, long lowerLimit, long upperLimit)
     }
     delay(delayTime);
   }
-  if(trialNum == 0){ return 0;
-  }else{ return duration /1.0 / trialNum;
-  }
+  if(trialNum == 0){ return 0;}
+  else  {return duration /1.0 / trialNum; }
 }
 
 //For taking multiple pings and average them
@@ -373,81 +405,31 @@ float multiplePing4(int trialNo, int delayTime, long lowerLimit, long upperLimit
 
 void colorSensor(){
  analogWrite(LED, 235);   //90% duty cycle for 4.5V
- photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin A1 and call it the "signal"
+ photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin
  voltage= (5.0*photoresistorSignal)/1023;           //convert the signal to a scale of 0 to 5 V
- Serial.println(voltage);                   //print the signal reading on a scale of 0 to 1023 to the serial monitor
- if(voltage < 3.7 ){                        //3.70 volt is the estimate for when you put your finger over the light sensor.
-   Serial.println("Green");                  // if the voltage reading is less than 3.70, the LED stays off
+ Serial.println(voltage);
+ if(voltage < colorCutoff ){                        //3.70 volt is the estimate for when you put your finger over the light sensor.
+   rf.sendMessage("Green");                  // if the voltage reading is less than 3.70, the LED stays off
  } else {
-   Serial.println("Light");                  // if the voltage reading is more than 3.70, the LED stays on
+   rf.sendMessage("Black");                  // if the voltage reading is more than 3.70, the LED stays on
  }
 }
 
 void allSensors(){
-  // establish variables for duration of the ping,
-// and the distance result in inches and centimeters:
-float duration, inches, cm, duration2, inches2, inchesTop, duration3;
-duration = multiplePing(repeatNo,interval,lower,upper); //average multiple ping
-duration2 = multiplePing2(repeatNo,interval,lower,upper);
-duration3 = multiplePing3(repeatNo,interval,lower,upper);
-// convert the time into a distance
-inches = microsecondsToInches(duration);
-inches2 = microsecondsToInches(duration2);
-inchesTop = microsecondsToInches(duration3);
-float distance = 13 - (inches + inches2);
-float height = 15 - inchesTop;
-float surfaceArea = distance * height;
-Serial.print("Length: ");
-Serial.print(distance);
-Serial.print("in");
-Serial.println();
-Serial.print("Height: ");
-Serial.print(height);
-Serial.print("in");
-Serial.println();
-Serial.print("Surface Area: ");
-Serial.print(surfaceArea);
-Serial.println();
-Serial.print("Color: ");
-colorSensor();
-Serial.println();
-}
-
-
-// Control Code 
-void controlX(int xRefIn, int xTermIn) {
-  if (x.marker < xterm) {
-    delta_y = y.marker-yref;
-    theta_desired = -1/2*arctan(delta_y);
-    delta_theta = marker.theta - theta_desired;
-    if (delta_theta > 0) {
-      analogout(left_wheel, 255);
-      delta_PWM = int(abs(delta_theta*k));
-      anologout(right_wheel, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
-    } else {
-      analogout(right_wheel, 255);
-      delta_PWM = int(abs(delta_theta*k));
-      analogout(left_wheel, 255-delta_PWM);
-    }
-    delta(500);
-    }
-}
+  duration = multiplePing(repeatNo,interval,lower,upper); //average multiple ping
+  duration2 = multiplePing2(repeatNo,interval,lower,upper);
+  duration3 = multiplePing3(repeatNo,interval,lower,upper);
   
+  inches = microsecondsToInches(duration); // convert the time into a distance
+  inches2 = microsecondsToInches(duration2);
+  inchesTop = microsecondsToInches(duration3);
   
-  void controlY(int yRefIn, int yTermIn) {
-  if (y.marker < yterm) {
-    delta_x = x.marker-xref;
-    theta_desired = -1/2*arctan(delta_x);
-    delta_theta = marker.theta-pi/2 - theta_desired;
-    if (delta_theta > 0) {
-      analogout(left_wheel, 255);
-      delta_PWM = int(abs(delta_theta*k));
-      anologout(right_wheel, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
-    } else {
-      analogout(right_wheel, 255);
-      delta_PWM = int(abs(delta_theta*k));
-      analogout(left_wheel, 255-delta_PWM);
-    }
-    delta(500);
-    }
+  float distance = arm_width - (inches + inches2);   //calculate length
+  float height = arm_height - inchesTop;              //calculate height
+  float surfaceArea = distance * height;      //calculate area
+  
+  rf.sendMessage("\nLength: " + distance + "in");
+  rf.sendMessage("\nHeight: " + height + "in");
+  rf.sendMessage("\nSurface Area: " + surfaceArea + "in^2");
+  rf.sendMessage("\nColor: ");        colorSensor();
 }
