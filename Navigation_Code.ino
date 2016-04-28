@@ -124,7 +124,7 @@ void loop() {
 }
 
 /************** Setup Code ******************/
-/** RFSetup
+
  * Created no date (Keystone)
  * Modified 4/17/2016 (Yichao Peng)
  * The program setup the RF communication with GPS system
