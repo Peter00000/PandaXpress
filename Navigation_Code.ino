@@ -1,8 +1,9 @@
 /************* Program variables ************/
 int state = 1;
+int photoresistorSignal;
 float duration, inches;       //ultrasonic reading
 bool is_boulder_green;
-float boulder_length, boulder_height, boulder_area; 
+float boulder_length, boulder_height, boulder_area, voltage;
 //
 /**************** Constants *****************/
 const int markerNumber = 113; //update this when receive new marker
@@ -55,7 +56,7 @@ void setup() {
   Serial.begin(9600);
   RFSetup();
   motorSetup();
-  singleSensorSetup();
+  ultrasonicSetup();
   pinMode(green, OUTPUT);
   pinMode(red, OUTPUT);
 }
@@ -141,16 +142,6 @@ void RFSetup() {
   rf.sendMessage("\nTeam PandaXpress is Connected\n"); //sent to mission control
   Serial.println("Team PandaXpress is Connected"); //sent to student's serial monitor
   //delay(1000);
-}
-
-/** singleSensorSetup
- * setting up ultasonic sensor
- */ 
-void singleSensorSetup() {
-  pinMode(trig, OUTPUT);
-  pinMode(A1,INPUT);    //this should not be hard coded
-  pinMode(trig2, OUTPUT);
-  pinMode(echo2, INPUT);
 }
 
 /** motorSetup
@@ -295,26 +286,88 @@ void RFLoop() {
   }
 }
 
-/** singleSensorLoop
- * Calls display distance value from multiple sensor calls
- * Caution: do not use when robot is moving
- */ 
-void singleSensorLoop() {
-  duration = multiplePing(repeatNo,interval,lower,upper); //average multiple ping
-  // convert the time into a distance
-  inches = microsecondsToInches(duration);
-  Serial.print(inches);
-  Serial.print(" ");
-  Serial.print("in");
-  Serial.println();
+void ultrasoniceSetup() {
+pinMode(trig_left_top, OUTPUT);
+pinMode(trig_right_side, OUTPUT);
+Serial.begin(9600);
+pinMode(LED, OUTPUT);
 }
 
-/** multiplePing (for stationary measurement)
- * Created 4/4/2016 (Yichao Peng)
- * Average multiple pings to get more accuracy
- * Used for measuring boulders - removed extreme values from calculation
- */ 
-float multiplePing(int trialNo, int delayTime, long lowerLimit, long upperLimit) {
+ //Gives off one single ping
+long ultrasoundPing(){
+  // Ping triggered by a HIGH pulse of 2 or more microseconds.
+  // Short LOW pulse beforehand ensures a clean HIGH pulse:
+  digitalWrite(trig_left_top, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig_left_top, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(trig_left_top, LOW);
+  
+  // The same pin is used to read the signal from the PING))): a HIGH
+  // pulse whose duration is the time (in microseconds) from the sending
+  // of the ping to the reception of its echo off of an object.
+  return pulseIn(ultrasound_left_pin, HIGH);
+}
+//Gives off one single ping
+long ultrasoundPing2(){
+  // Ping triggered by a HIGH pulse of 2 or more microseconds.
+  // Short LOW pulse beforehand ensures a clean HIGH pulse:
+  digitalWrite(trig_right_side, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig_right_side, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(trig_right_side, LOW);
+  
+  // The same pin is used to read the signal from the PING))): a HIGH
+  // pulse whose duration is the time (in microseconds) from the sending
+  // of the ping to the reception of its echo off of an object.
+  return pulseIn(ultrasound_right_pin, HIGH);
+}
+
+long ultrasoundPing3(){
+  // Ping triggered by a HIGH pulse of 2 or more microseconds.
+  // Short LOW pulse beforehand ensures a clean HIGH pulse:
+  digitalWrite(trig_left_top, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig_left_top, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(trig_left_top, LOW);
+  
+  // The same pin is used to read the signal from the PING))): a HIGH
+  // pulse whose duration is the time (in microseconds) from the sending
+  // of the ping to the reception of its echo off of an object.
+  return pulseIn(ultrasound_top_pin, HIGH);
+}
+
+long ultrasoundPing4() {
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(trig, LOW);
+  return pulseIn(A4, HIGH);
+}
+
+float microsecondsToInches(long microseconds)
+{
+  // According to Parallax's datasheet for the PING))), there are
+  // 73.746 microseconds per inch (i.e. sound travels at 1130 feet per
+  // second). This gives the distance travelled by the ping, outbound
+  // and return, so we divide by 2 to get the distance of the obstacle.
+  // See: http://www.parallax.com/dl/docs/prod/acc/28015-PI...
+  return microseconds / 73.746 / 2.0;
+}
+float microsecondsToCentimeters(long microseconds)
+{
+  // The speed of sound is 340 m/s or 29 microseconds per centimeter.
+  // The ping travels out and back, so to find the distance of the
+  // object we take half of the distance travelled.
+  return microseconds / 29.41 / 2.0;
+}
+
+
+
+float multiplePing(int trialNo, int delayTime, long lowerLimit, long upperLimit){
   float duration = 0;
   int trialNum = 0;
   for(int i=0; i<trialNo; i++){
@@ -330,25 +383,114 @@ float multiplePing(int trialNo, int delayTime, long lowerLimit, long upperLimit)
   }
 }
 
-/** ultrasoundPing (single ping for on the move)
- * (http://www.instructables.com/id/Easy-ultrasonic-4-pin-sensor-monitoring-hc-sr04/)
- * Code triggers the ultrasonic sensor and reads the return raw duration in milliseconds
- * Caution: only can read one sensor per round
- * Caution: hard coded for A! now
- */ 
-long ultrasoundPing() {
-  digitalWrite(trig, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(trig, LOW);
-  return pulseIn(A1, HIGH);
+//For taking multiple pings and average them
+//Filters out number outside the range of expected values, return 0
+
+//For taking multiple pings and average them
+//Filters out number outside the range of expected values, return 0
+float multiplePing2(int trialNo, int delayTime, long lowerLimit, long upperLimit){
+  float duration2 = 0;
+  int trialNum = 0;
+  for(int i=0; i<trialNo; i++){
+    long d = ultrasoundPing2();
+    if(d > lowerLimit && d < upperLimit){
+        duration2 = duration2 + d;
+        trialNum++;
+    }
+    delay(delayTime);
+  }
+  if(trialNum == 0){ return 0;
+  }else{ return duration2 /1.0 / trialNum;
+  }
 }
 
-/** microsecondToInches
- * (http://www.instructables.com/id/Easy-ultrasonic-4-pin-sensor-monitoring-hc-sr04/)
- * Return number of inches to the object
- */ 
-float microsecondsToInches(long microseconds) {
-  return microseconds / 73.746 / 2.0;
+float multiplePing3(int trialNo, int delayTime, long lowerLimit, long upperLimit){
+  float duration = 0;
+  int trialNum = 0;
+  for(int i=0; i<trialNo; i++){
+    long d = ultrasoundPing3();
+    if(d > lowerLimit && d < upperLimit){
+        duration = duration + d;
+        trialNum++;
+    }
+    delay(delayTime);
+  }
+  if(trialNum == 0){ return 0;
+  }else{ return duration /1.0 / trialNum;
+  }
 }
+
+/** multiplePing (for stationary measurement)
+ * Created 4/4/2016 (Yichao Peng)
+ * Average multiple pings to get more accuracy
+ * Used for measuring boulders - removed extreme values from calculation
+ */ 
+float multiplePing4(int trialNo, int delayTime, long lowerLimit, long upperLimit) {
+  float duration = 0;
+  int trialNum = 0;
+  for(int i=0; i<trialNo; i++){
+    long d = ultrasoundPing4();
+    if(d > lowerLimit && d < upperLimit){
+        duration = duration + d;
+        trialNum++;
+    }
+    delay(delayTime);
+  }
+  if(trialNum == 0){ return 0;
+  }else{ return duration /1.0 / trialNum;
+  }
+}
+
+
+void colorSensor(){
+ digitalWrite(LED, HIGH);
+ photoresistorSignal = analogRead(photoresist_pin);                     //take the reading at analog input pin A1 and call it the "signal"
+ voltage= (5.0*photoresistorSignal)/1023;                 //convert the signal to a scale of 0 to 5 V
+ Serial.println(voltage);                   //print the signal reading on a scale of 0 to 1023 to the serial monitor
+ if(voltage < 3.7 ){                        //3.70 volt is the estimate for when you put your finger over the light sensor.
+   Serial.println("Green");                  // if the voltage reading is less than 3.70, the LED stays off
+ } else {
+   Serial.println("Light");                  // if the voltage reading is more than 3.70, the LED stays on
+ }
+}
+
+void allSensors(){
+  // establish variables for duration of the ping,
+// and the distance result in inches and centimeters:
+float duration, inches, cm, duration2, inches2, inchesTop, duration3;
+duration = multiplePing(repeatNo,interval,lower,upper); //average multiple ping
+duration2 = multiplePing2(repeatNo,interval,lower,upper);
+duration3 = multiplePing3(repeatNo,interval,lower,upper);
+// convert the time into a distance
+inches = microsecondsToInches(duration);
+inches2 = microsecondsToInches(duration2);
+inchesTop = microsecondsToInches(duration3);
+float distance = 13 - (inches + inches2);
+float height = 15 - inchesTop;
+float surfaceArea = distance * height;
+Serial.print("Length: ");
+Serial.print(distance);
+Serial.print("in");
+Serial.println();
+Serial.print("Height: ");
+Serial.print(height);
+Serial.print("in");
+Serial.println();
+Serial.print("Surface Area: ");
+Serial.print(surfaceArea);
+Serial.println();
+Serial.print("Color: ");
+
+colorSensor();
+Serial.println();
+}
+
+
+
+
+
+
+ 
+
+
+
