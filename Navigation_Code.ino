@@ -20,7 +20,9 @@ int in1 = 6;  int in2 = 7;
 int LED = 9;  
 int RF_TX = 10;
 int RF_RX = 11;
-int photoresist_pin     = 0;
+int trig_left_top = 12;
+int trig_right_side = 13;
+int photoresist_pin     = 0; //analog pins
 int ultrasound_left_pin = 1;
 int ultrasound_top_pin  = 2;
 int ultrasound_right_pin= 3;
