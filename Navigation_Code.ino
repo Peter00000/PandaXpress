@@ -22,11 +22,11 @@ int RF_TX = 10;
 int RF_RX = 11;
 int trig_left_top = 12;
 int trig_right_side = 13;
-int photoresist_pin     = 0; //analog pins
-int ultrasound_left_pin = 1;
-int ultrasound_top_pin  = 2;
-int ultrasound_right_pin= 3;
-int ultrasound_side_pin = 4;
+int photoresist_pin     = A0; //analog pins
+int ultrasound_left_pin = A1;
+int ultrasound_top_pin  = A2;
+int ultrasound_right_pin= A3;
+int ultrasound_side_pin = A4;
 
 /********* Fakebot testing pin var **********/
 // int ena = 5;  int enb = 4; //need better name for the motor pins
