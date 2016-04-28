@@ -14,9 +14,9 @@ const long upper    = 1200;   //filter out unwanted data in ultrasonic reading
 const long lower    = 150;    //only apply when averaging multiple trials
 
 /************** Pin Variables ***************/
-int in3 = 2;  int in4 = 3; //Kaitlin, Maria, please verify the digital pin asssignments
-int enb = 4;  //left and top
-int ena = 5; //right and side
+int in3 = 2;  int in4 = 3;
+int enb = 4;  
+int ena = 5; 
 int in1 = 6;  int in2 = 7;
 int LED = 9;  
 int RF_TX = 10;
@@ -29,28 +29,15 @@ int ultrasound_top_pin  = A2;
 int ultrasound_right_pin= A3;
 int ultrasound_side_pin = A4;
 
-/********* Fakebot testing pin var **********/
-// int ena = 5;  int enb = 4; //need better name for the motor pins
-// int in1 = 6;  int in3 = 2; 
-// int in2 = 7;  int in4 = 3;
-// int trig = 3;       //attach pin 3 to Trig
-// int echo = 4;       //attach pin 4 to Echo
-// int trig2 = 5;      //attach pin 5 to Trig on second sensor
-// int echo2 = 6;      //attach pin 6 to Echo on second sensor 
-// int green = 10;
-// int red = 11;
-
 /********* Initiate RF GPS System ***********/
 #include <SoftwareSerial.h>
 #include "enes100.h"
-SoftwareSerial mySerial(RF_RX, RF_TX); //RX is pin 8, TX is pin 9
+SoftwareSerial mySerial(RF_RX, RF_TX);
 enes100::RfClient<SoftwareSerial> rf(&mySerial); 
 enes100::Marker marker;
 
 /*************** Main Code ******************/
-
-/** Setup
- * created 4/14/2016    by Austin
+/** Setup (4/14/2016 Austin)
  * initiate all system variables */
 void setup() {
   Serial.begin(9600);
@@ -61,11 +48,9 @@ void setup() {
   pinMode(red, OUTPUT);
 }
 
-/** loop
- * created 4/14/2016    by Austin
+/** loop  (4/14/2016  Austin)
  * main loop that navigate robot through different stages
- * use the variable 'state' to track stages of navigation
- */
+ * use the variable 'state' to track stages of navigation */
 void loop() {
   RFLoop();
   switch(state) {
@@ -101,7 +86,7 @@ void loop() {
       if (marker.y != 1) {
         if (marker.y > 1) {
           turnRight(-pi/2);
-          driveForwardYDirection(1);
+          driveForwardYDirection(1); //need to update for the new control code
           turnLeft(0);
             
         } else {
@@ -124,20 +109,12 @@ void loop() {
 }
 
 /************** Setup Code ******************/
-<<<<<<< HEAD
-/** RfFSetup
-=======
-
->>>>>>> origin/master
- * Created no date (Keystone)
- * Modified 4/17/2016 (Yichao Peng)
- * The program setup the RF communication with GPS system
- */
+/** RF Setup  (4/17/2016 Yichao)
+ * Setup the RF communication with GPS system */
 void RFSetup() {
    mySerial.begin(9600); //this establishes serial communication with
                         //something other than serial monitor, in this
                         //case RF communication with mission control
-  //Serial.begin(9600); //already called by main program
 
   pinMode(RF_RX, INPUT); //since pin 8 is RX, it receives as an input
   pinMode(RF_TX, OUTPUT); //since pin 9 is TX, it transmits as an output
@@ -148,52 +125,35 @@ void RFSetup() {
   //delay(1000);
 }
 
-/** motorSetup
- * Created (Paulo)
- * Modified 4/14/2016 (Austin)
- * setting up ultasonic sensor
- */ 
+/** motorSetup  (Paulo)
+ * setting up ultasonic sensor */ 
 void motorSetup() {
-  pinMode(ena,OUTPUT);
-  pinMode(in1,OUTPUT);
-  pinMode(in2,OUTPUT);
-  pinMode(enb,OUTPUT);
-  pinMode(in3,OUTPUT);
-  pinMode(in4,OUTPUT);
+  pinMode(ena,OUTPUT);    pinMode(enb,OUTPUT);
+  pinMode(in1,OUTPUT);    pinMode(in3,OUTPUT);
+  pinMode(in2,OUTPUT);    pinMode(in4,OUTPUT);
 }
 
 /************** Motion Code *****************/
 void motorStraight() {
-  digitalWrite(in1,LOW);
-  digitalWrite(in2,HIGH);
-  analogWrite(ena,255);
-  digitalWrite(in3,HIGH);
-  digitalWrite(in4,LOW);
-  analogWrite(enb,255);
+  digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
+  digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
+  analogWrite(ena,255);     analogWrite(enb,255);
 }
 
 void motorTurnRight() {
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  analogWrite(ena,100);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
-  analogWrite(enb,100);
+  digitalWrite(in1, LOW);   digitalWrite(in3, LOW);
+  digitalWrite(in2, HIGH);  digitalWrite(in4, HIGH);
+  analogWrite(ena,100);     analogWrite(enb,100);
 }
 
 void motorTurnLeft() {
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
-  analogWrite(ena,100);
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
-  analogWrite(enb,100);
+  digitalWrite(in1, HIGH);  digitalWrite(in3, HIGH);
+  digitalWrite(in2, LOW);   digitalWrite(in4, LOW);
+  analogWrite(ena,100);     analogWrite(enb,100);
 }
 
-/** driveForwardXDirection
- * Created 4/14/2016 (Austin)
- * Caution: used for fakebot only, does not move robot
- */ 
+/** driveForwardXDirection (4/14/2016 Austin)
+ * Caution: used for fakebot only, does not move robot */ 
 void driveForwardXDirection(float xValue) {
   while (marker.x < xValue) {
     motorStraight();
@@ -203,10 +163,8 @@ void driveForwardXDirection(float xValue) {
   }
 }
 
-/** driveForwardYDirection
- * Created 4/14/2016 (Austin)
- * Caution: use for fakebot only, does not move robot
- */ 
+/** driveForwardYDirection (4/14/2016 Austin)
+ * Caution: use for fakebot only, does not move robot */ 
 void driveForwardYDirection(float yValue) {
   float tolerance = .05;
   while (marker.y - yValue < -(tolerance) || marker.y - yValue > tolerance) {
@@ -217,70 +175,51 @@ void driveForwardYDirection(float yValue) {
   }
 }
 
-/** turnLeft
- * Created 4/14/2016 (Austin)
- * Turn the OSV to the desired orientation to the left
- * Caution: modify code for real robot
- */ 
+/** turnLeft (4/14/2016 Austin)
+ * Turn the OSV to the desired orientation to the left */ 
 void turnLeft(float orientation) {
   float tolerance = (pi/12);
   while (marker.theta - orientation < -(tolerance)) {
-    motorTurnLeft();
     RFLoop();
-    //digitalWrite(green, LOW);
-    //digitalWrite(red, HIGH);
+    motorTurnLeft();
   }
 }
 
-/** turnRight
- * Created 4/14/2016 (Austin)
- * Turn the OSV to the desired orientation to the right
- * Caution: modify code for real robot
- */ 
+/** turnRight (4/14/2016 Austin)
+ * Turn the OSV to the desired orientation to the right */ 
 void turnRight(float orientation) {
   float tolerance = (pi/12);
   while (marker.theta - orientation > tolerance) {
-    motorTurnRight();
     RFLoop();
-    //digitalWrite(green, HIGH);
-    //digitalWrite(red, LOW);
+    motorTurnRight();
   }
 }
 
 /************** Sensor Code ******************/
 
-/** senseObstacle
- * Created 4/14/2016 (Austin)
- * Modified 
+/** senseObstacle (4/14/2016 Austin)
  * Determines if the obsticle exist based on the ultrasonic reading
- * Caution: need to modify for better path finding, does not remember past values
- */ 
-boolean senseObstacle() {
-  boolean obstacle;
-  if (inches != 0) {
-    obstacle = true;
-  } else {
-    obstacle = false;
-  }
+ * Caution: need to modify for better path finding, does not remember past values */ 
+bool senseObstacle() {
+  if (inches != 0) {return true;}
+  else {return false;}
 }
 
-/**RFLoop
- * Created no date (Keystone)
- * Read and print the x, y, theta orientation
- * Caution: need to modify to return value or save value in global variable
- */ 
+/**RFLoop (Keystone)
+ * Read and print the x, y, theta orientation */ 
 void RFLoop() {
-    if(rf.receiveMarker(&marker, markerNumber)) //see if marker 104 is received
+    if(rf.receiveMarker(&marker, markerNumber))
   {
     rf.sendMessage("\nMarker is successfully being read\n");
-    Serial.print("x value of marker is ");
-    Serial.println(marker.x);
-    Serial.print("y value of marker is ");
-    Serial.println(marker.y);
-    Serial.print("the orientation is ");
-    Serial.println(marker.theta);
+    // Serial.print("x value of marker is ");
+    // Serial.println(marker.x);
+    // Serial.print("y value of marker is ");
+    // Serial.println(marker.y);
+    // Serial.print("the orientation is ");
+    // Serial.println(marker.theta);
+    Serial.println("Marker value successfully being read.");
     //delay(500);   //got rid of the delay
-    rf.sendMessage("Panda Xpress Rocks");
+    rf.sendMessage("Panda Xpress is Reading Data");
   }
   else
   {
@@ -297,7 +236,7 @@ Serial.begin(9600);
 pinMode(LED, OUTPUT);
 }
 
- //Gives off one single ping
+ //Gives off one single ping from left sensor
 long ultrasoundPing(){
   // Ping triggered by a HIGH pulse of 2 or more microseconds.
   // Short LOW pulse beforehand ensures a clean HIGH pulse:
@@ -306,12 +245,9 @@ long ultrasoundPing(){
   digitalWrite(trig_left_top, HIGH);
   delayMicroseconds(5);
   digitalWrite(trig_left_top, LOW);
-  
-  // The same pin is used to read the signal from the PING))): a HIGH
-  // pulse whose duration is the time (in microseconds) from the sending
-  // of the ping to the reception of its echo off of an object.
-  return pulseIn(ultrasound_left_pin, HIGH);
+  return pulseIn(ultrasound_left_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
 }
+
 //Gives off one single ping
 long ultrasoundPing2(){
   // Ping triggered by a HIGH pulse of 2 or more microseconds.
@@ -321,11 +257,7 @@ long ultrasoundPing2(){
   digitalWrite(trig_right_side, HIGH);
   delayMicroseconds(5);
   digitalWrite(trig_right_side, LOW);
-  
-  // The same pin is used to read the signal from the PING))): a HIGH
-  // pulse whose duration is the time (in microseconds) from the sending
-  // of the ping to the reception of its echo off of an object.
-  return pulseIn(ultrasound_right_pin, HIGH);
+  return pulseIn(ultrasound_right_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
 }
 
 long ultrasoundPing3(){
@@ -336,20 +268,16 @@ long ultrasoundPing3(){
   digitalWrite(trig_left_top, HIGH);
   delayMicroseconds(5);
   digitalWrite(trig_left_top, LOW);
-  
-  // The same pin is used to read the signal from the PING))): a HIGH
-  // pulse whose duration is the time (in microseconds) from the sending
-  // of the ping to the reception of its echo off of an object.
-  return pulseIn(ultrasound_top_pin, HIGH);
+  return pulseIn(ultrasound_top_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
 }
 
 long ultrasoundPing4() {
-  digitalWrite(trig, LOW);
+  digitalWrite(trig_right_side, LOW);
   delayMicroseconds(2);
-  digitalWrite(trig, HIGH);
+  digitalWrite(trig_right_side, HIGH);
   delayMicroseconds(5);
-  digitalWrite(trig, LOW);
-  return pulseIn(A4, HIGH);
+  digitalWrite(trig_right_side, LOW);
+  return pulseIn(ultrasound_side_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
 }
 
 float microsecondsToInches(long microseconds)
@@ -369,8 +297,8 @@ float microsecondsToCentimeters(long microseconds)
   return microseconds / 29.41 / 2.0;
 }
 
-
-
+//For taking multiple pings and average them
+//Filters out number outside the range of expected values, return 0
 float multiplePing(int trialNo, int delayTime, long lowerLimit, long upperLimit){
   float duration = 0;
   int trialNum = 0;
@@ -386,9 +314,6 @@ float multiplePing(int trialNo, int delayTime, long lowerLimit, long upperLimit)
   }else{ return duration /1.0 / trialNum;
   }
 }
-
-//For taking multiple pings and average them
-//Filters out number outside the range of expected values, return 0
 
 //For taking multiple pings and average them
 //Filters out number outside the range of expected values, return 0
@@ -447,9 +372,9 @@ float multiplePing4(int trialNo, int delayTime, long lowerLimit, long upperLimit
 
 
 void colorSensor(){
- digitalWrite(LED, HIGH);
- photoresistorSignal = analogRead(photoresist_pin);                     //take the reading at analog input pin A1 and call it the "signal"
- voltage= (5.0*photoresistorSignal)/1023;                 //convert the signal to a scale of 0 to 5 V
+ analogWrite(LED, 235);   //90% duty cycle for 4.5V
+ photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin A1 and call it the "signal"
+ voltage= (5.0*photoresistorSignal)/1023;           //convert the signal to a scale of 0 to 5 V
  Serial.println(voltage);                   //print the signal reading on a scale of 0 to 1023 to the serial monitor
  if(voltage < 3.7 ){                        //3.70 volt is the estimate for when you put your finger over the light sensor.
    Serial.println("Green");                  // if the voltage reading is less than 3.70, the LED stays off
@@ -484,22 +409,11 @@ Serial.print("Surface Area: ");
 Serial.print(surfaceArea);
 Serial.println();
 Serial.print("Color: ");
-
 colorSensor();
 Serial.println();
 }
-<<<<<<< HEAD
 
 
-
-
-
-
- 
-
-
-
-=======
 // Control Code 
 void controlX(int xRefIn, int xTermIn) {
   if (x.marker < xterm) {
@@ -537,7 +451,3 @@ void controlX(int xRefIn, int xTermIn) {
     delta(500);
     }
 }
-  
-  }
-}
->>>>>>> pr/5
