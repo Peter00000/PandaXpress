@@ -178,19 +178,19 @@ void motorStraight() {
 void motorTurnRight() {
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
-  analogWrite(ena,150);
+  analogWrite(ena,100);
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
-  analogWrite(enb,150);
+  analogWrite(enb,100);
 }
 
 void motorTurnLeft() {
   digitalWrite(in1, HIGH);
   digitalWrite(in2, LOW);
-  analogWrite(ena,150);
+  analogWrite(ena,100);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
-  analogWrite(enb,150);
+  analogWrite(enb,100);
 }
 
 /** driveForwardXDirection
