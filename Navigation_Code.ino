@@ -20,7 +20,7 @@ const int k = 150;              //constant relate delta_angle to delta_PWM
 
 /************** Pin Variables ***************/
 int in3 = 2;  int in4 = 3;  
-int enb = 4;  int ena = 5; 
+int enb = 4;  int ena = 5; //ena: right wheel   enb: left wheel
 int in1 = 6;  int in2 = 7;
 int LED = 9;  
 int RF_TX = 10; 
@@ -56,15 +56,13 @@ void setup() {
 void loop() {
   RFLoop();
   switch(state) {
-    case 0:
-      break;
+    case 0: break;
     case 1: //OSV is in landing zone
       turnRight(0);
       driveForwardXDirection(1);
-      state = 2;
-      break;
+      state = 2; break; //this should be in the control code
     case 2: //OSV is at edge of landing zone
-      boolean obstacle;
+      bool obstacle;
       obstacle = senseObstacle();
       //turnLeft(pi/2);
       if(obstacle == true){
@@ -170,20 +168,25 @@ void driveForwardXDirection(float xValue) {
 
 /** controlX (4/28/2016 Mitchell) */
 void controlX(int xRefIn, int xTermIn) {
+  digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
+  digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
+  
   if (x.marker < xterm) {
     delta_y       = marker.y-yref;
     theta_desired = -1/2*arctan(delta_y);
     delta_theta   = marker.theta - theta_desired;
     delta_PWM     = int(abs(delta_theta*k));
+    if(delta_PWM>255)   deltaPWM = 255;
     if (delta_theta > 0) {
-      analogout(left_wheel, 255);
-      anologout(right_wheel, 255-delta_PWM); 
+      analogWrite(left_wheel, 255);                   //these are ena and enb
+      analogWrite(right_wheel, 255-delta_PWM); 
     } else {
-      analogout(right_wheel, 255);
-      analogout(left_wheel, 255-delta_PWM);
+      analogWrite(right_wheel, 255);
+      analogWrite(left_wheel, 255-delta_PWM);
     }
     delay(400);
     }
+  else state++;
 }
 
 /** driveForwardYDirection (4/14/2016 Austin)
@@ -203,15 +206,17 @@ void controlY(int yRefIn, int yTermIn) {
     theta_desired = -1/2*arctan(delta_x);
     delta_theta   = marker.theta-pi/2 - theta_desired;
     delta_PWM     = int(abs(delta_theta*k));
+    if(delta_PWM>255)   deltaPWM = 255;
     if (delta_theta > 0) {
-      analogout(left_wheel, 255);
-      anologout(right_wheel, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
+      analogWrite(left_wheel, 255);
+      analogWrite(right_wheel, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
     } else {
-      analogout(right_wheel, 255);
-      analogout(left_wheel, 255-delta_PWM);
+      analogWrite(right_wheel, 255);
+      analogWrite(left_wheel, 255-delta_PWM);
     }
     delay(400);
   }
+  else state++;
 }
 
 /** turnLeft (4/14/2016 Austin)
