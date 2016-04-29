@@ -1,10 +1,11 @@
 /************* Program variables ************/
 int state = 1;
 float photoresistorSignal;
-float duration, duration2, duration3, inches, inches2, inchesTop;   //ultrasonic reading
+float duration_left, duration_top, duration_right, 
+      inches_left, inches_right, inches_top;   //ultrasonic reading
 bool is_boulder_green;
 float boulder_length, boulder_height, boulder_area, voltage;
-//
+
 /**************** Constants *****************/
 const int markerNumber = 113; //update this when receive new marker
 const float pi      = 3.14159;
@@ -106,7 +107,6 @@ void loop() {
       state = 0;
       break;  
   }
-
 }
 
 /************** Setup Code ******************/
@@ -249,16 +249,9 @@ bool senseObstacle() {
 void RFLoop() {
     if(rf.receiveMarker(&marker, markerNumber))
   {
-    rf.sendMessage("\nMarker is successfully being read\n");
-    // Serial.print("x value of marker is ");
-    // Serial.println(marker.x);
-    // Serial.print("y value of marker is ");
-    // Serial.println(marker.y);
-    // Serial.print("the orientation is ");
-    // Serial.println(marker.theta);
-    Serial.println("Marker value successfully being read.");
-    //delay(500);   //got rid of the delay
-    rf.sendMessage("Panda Xpress is Reading Data");
+    //rf.sendMessage("\nMarker is successfully being read\n");
+    Serial.println("Marker value [x,y,theta] = ["+marker.x+","+marker.y+","+marker.theta+"]");
+    //rf.sendMessage("Panda Xpress is Reading Data");
   }
   else
   {
@@ -268,168 +261,76 @@ void RFLoop() {
   }
 }
 
- //Gives off one single ping from left sensor
-long ultrasoundPing(){
-  // Ping triggered by a HIGH pulse of 2 or more microseconds.
-  // Short LOW pulse beforehand ensures a clean HIGH pulse:
-  digitalWrite(trig_left_top, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig_left_top, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(trig_left_top, LOW);
-  return pulseIn(ultrasound_left_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
+/** ping (4/28/2019 Yichao Peng)
+ * Single ping for a given ultrasonic sensor
+ */
+long ping(int trig_pin, int echo_pin){
+  digitalWrite(trig_pin, LOW); 
+  delayMicroseconds(2); // Short LOW pulse beforehand ensures a clean HIGH pulse:
+  digitalWrite(trig_pin, HIGH);
+  delayMicroseconds(5); // Ping triggered by a HIGH pulse of 2 or more microseconds.
+  digitalWrite(trig_pin, LOW);
+  return pulseIn(echo_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
 }
-
-//Gives off one single ping
-long ultrasoundPing2(){
-  // Ping triggered by a HIGH pulse of 2 or more microseconds.
-  // Short LOW pulse beforehand ensures a clean HIGH pulse:
-  digitalWrite(trig_right_side, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig_right_side, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(trig_right_side, LOW);
-  return pulseIn(ultrasound_right_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
-}
-
-long ultrasoundPing3(){
-  // Ping triggered by a HIGH pulse of 2 or more microseconds.
-  // Short LOW pulse beforehand ensures a clean HIGH pulse:
-  digitalWrite(trig_left_top, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig_left_top, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(trig_left_top, LOW);
-  return pulseIn(ultrasound_top_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
-}
-
-long ultrasoundPing4() {
-  digitalWrite(trig_right_side, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig_right_side, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(trig_right_side, LOW);
-  return pulseIn(ultrasound_side_pin, HIGH); // Reads the pulse duration of the echo in milliseconds
-}
-
-float microsecondsToInches(long microseconds)
-{
-  // According to Parallax's datasheet for the PING))), there are
-  // 73.746 microseconds per inch (i.e. sound travels at 1130 feet per
-  // second). This gives the distance travelled by the ping, outbound
-  // and return, so we divide by 2 to get the distance of the obstacle.
-  // See: http://www.parallax.com/dl/docs/prod/acc/28015-PI...
-  return microseconds / 73.746 / 2.0;
-}
-float microsecondsToCentimeters(long microseconds)
-{
-  // The speed of sound is 340 m/s or 29 microseconds per centimeter.
-  // The ping travels out and back, so to find the distance of the
-  // object we take half of the distance travelled.
-  return microseconds / 29.41 / 2.0;
-}
-
+ 
 /** MultiplePing (Yichao)
- * For taking multiple pings and average them
- * Filters out number outside the range of expected values, return 0 */
-float multiplePing(int trialNo, int delayTime, long lowerLimit, long upperLimit){
+* For taking multiple pings and average them
+* Filters out number outside the range of expected values, return 0 */
+float multiplePing(int trig_pin, int echo_pin){
   float duration = 0;
   int trialNum = 0;
-  for(int i=0; i<trialNo; i++){
-    long d = ultrasoundPing();
-    if(d > lowerLimit && d < upperLimit){
+  for(int i=0; i<repeatNo; i++){
+    long d = ping(trig_pin,echo_pin);
+    if(d > lower && d < upper){
         duration = duration + d;
         trialNum++;
     }
-    delay(delayTime);
+    delay(interval);
   }
   if(trialNum == 0){ return 0;}
   else  {return duration /1.0 / trialNum; }
 }
 
-//For taking multiple pings and average them
-//Filters out number outside the range of expected values, return 0
-float multiplePing2(int trialNo, int delayTime, long lowerLimit, long upperLimit){
-  float duration2 = 0;
-  int trialNum = 0;
-  for(int i=0; i<trialNo; i++){
-    long d = ultrasoundPing2();
-    if(d > lowerLimit && d < upperLimit){
-        duration2 = duration2 + d;
-        trialNum++;
-    }
-    delay(delayTime);
-  }
-  if(trialNum == 0){ return 0;
-  }else{ return duration2 /1.0 / trialNum;
-  }
+float microsecondsToInches(long microseconds)
+{  // 73.746 microseconds per inch (i.e. sound travels at 1130 feet per seconds
+  // See: http://www.parallax.com/dl/docs/prod/acc/28015-PI...
+  return microseconds / 73.746 / 2.0;
 }
 
-float multiplePing3(int trialNo, int delayTime, long lowerLimit, long upperLimit){
-  float duration = 0;
-  int trialNum = 0;
-  for(int i=0; i<trialNo; i++){
-    long d = ultrasoundPing3();
-    if(d > lowerLimit && d < upperLimit){
-        duration = duration + d;
-        trialNum++;
-    }
-    delay(delayTime);
-  }
-  if(trialNum == 0){ return 0;
-  }else{ return duration /1.0 / trialNum;
-  }
+float microsecondsToCentimeters(long microseconds)
+{  // The speed of sound is 340 m/s or 29 microseconds per centimeter.
+  return microseconds / 29.41 / 2.0;
 }
-
-/** multiplePing (for stationary measurement)
- * Created 4/4/2016 (Yichao Peng)
- * Average multiple pings to get more accuracy
- * Used for measuring boulders - removed extreme values from calculation
- */ 
-float multiplePing4(int trialNo, int delayTime, long lowerLimit, long upperLimit) {
-  float duration = 0;
-  int trialNum = 0;
-  for(int i=0; i<trialNo; i++){
-    long d = ultrasoundPing4();
-    if(d > lowerLimit && d < upperLimit){
-        duration = duration + d;
-        trialNum++;
-    }
-    delay(delayTime);
-  }
-  if(trialNum == 0){ return 0;
-  }else{ return duration /1.0 / trialNum;
-  }
-}
-
 
 void colorSensor(){
- analogWrite(LED, 235);   //90% duty cycle for 4.5V
- photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin
- voltage= (5.0*photoresistorSignal)/1023;           //convert the signal to a scale of 0 to 5 V
- Serial.println(voltage);
- if(voltage < colorCutoff ){                        //3.70 volt is the estimate for when you put your finger over the light sensor.
+  analogWrite(LED, 235);   //90% duty cycle for 4.5V
+  delay(400);
+  photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin
+  voltage= (5.0*photoresistorSignal)/1023;           //convert the signal to a scale of 0 to 5 V
+  Serial.println(voltage);
+  if(voltage < colorCutoff ){                        //3.70 volt is the estimate for when you put your finger over the light sensor.
    rf.sendMessage("Green");                  // if the voltage reading is less than 3.70, the LED stays off
- } else {
+  } else {
    rf.sendMessage("Black");                  // if the voltage reading is more than 3.70, the LED stays on
- }
+  }
+  analogWrite(LED,0);
 }
 
 void allSensors(){
-  duration = multiplePing(repeatNo,interval,lower,upper); //average multiple ping
-  duration2 = multiplePing2(repeatNo,interval,lower,upper);
-  duration3 = multiplePing3(repeatNo,interval,lower,upper);
+  duration_left   = multiplePing(trig_left_top,ultrasound_left_pin); //average multiple ping
+  duration_top    = multiplePing(trig_left_top,ultrasound_top_pin);
+  duration_right  = multiplePing(trig_right_side,ultrasound_side_pin);
   
-  inches = microsecondsToInches(duration); // convert the time into a distance
-  inches2 = microsecondsToInches(duration2);
-  inchesTop = microsecondsToInches(duration3);
+  inches_left     = microsecondsToInches(duration_left); // convert the time into a distance
+  inches_top      = microsecondsToInches(duration_top);
+  inches_right    = microsecondsToInches(duration_right);
   
-  float distance = arm_width - (inches + inches2);   //calculate length
-  float height = arm_height - inchesTop;              //calculate height
-  float surfaceArea = distance * height;      //calculate area
+  boulder_length  = arm_width - (inches_left + inches_right); //calculate length
+  boulder_height  = arm_height - inches_top;                  //calculate height
+  boulder_area    = distance * height;                        //calculate area
   
-  rf.sendMessage("\nLength: " + distance + "in");
-  rf.sendMessage("\nHeight: " + height + "in");
-  rf.sendMessage("\nSurface Area: " + surfaceArea + "in^2");
+  rf.sendMessage("\nLength: " + boulder_length + "in");
+  rf.sendMessage("\nHeight: " + boulder_height + "in");
+  rf.sendMessage("\nSurface Area: " + boulder_area + "in^2");
   rf.sendMessage("\nColor: ");        colorSensor();
 }
