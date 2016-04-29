@@ -168,10 +168,10 @@ void motorTurnLeft() {
 /** driveForwardXDirection (4/14/2016 Austin)
  * Caution: used for fakebot only, does not move robot */ 
 void driveForwardXDirection(float x_goal, float y_ref) {
-  while (marker.x < xValue) {
+  while (marker.x < x_goal) {
     RFLoop();
     float error = marker.y-y_ref;
-    float theta = -1/2*arctan(error);
+    float theta = -1/2*atan(error);
     control(0, theta);
   }
 }
@@ -181,8 +181,8 @@ void control(float theta_ref, float theta_desired){
       int delta_PWM     = (int)(abs(delta_theta*k));  //calculate speed difference based on angle differnece
       if(delta_PWM>255)       delta_PWM = 255;
       if (delta_theta > theta_ref) 
-            motorControl(255,255-deltaPWM);
-      else  motorControl(255-deltaPWM,255);
+            motorControl(255,255-delta_PWM);
+      else  motorControl(255-delta_PWM,255);
       delay(300);
 }
 
