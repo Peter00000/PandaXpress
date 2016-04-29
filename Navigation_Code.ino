@@ -3,11 +3,10 @@ int state = 1;
 float photoresistorSignal;
 float duration_left, duration_top, duration_right, 
       inches_left, inches_right, inches_top;   //ultrasonic reading
-bool is_boulder_green;
 float boulder_length, boulder_height, boulder_area, voltage;
 
 /**************** Constants *****************/
-const int markerNumber = 113; //update this when receive new marker
+const int markerNum = 113;    //update this when receive new marker
 const float pi      = 3.14159;
 const int repeatNo  = 5;      //for multiple ultrasonic read
 const int interval  = 200;    //ms wait
@@ -123,7 +122,7 @@ void RFSetup() {
   rf.resetServer();
   rf.sendMessage("\nTeam PandaXpress is Connected\n"); //sent to mission control
   Serial.println("Team PandaXpress is Connected"); //sent to student's serial monitor
-  //delay(1000);
+  delay(500);
 }
 
 /** motorSetup  (Paulo) */ 
@@ -141,7 +140,7 @@ void ultrasonicSetup() {
 }
 
 /************** Motion Code *****************/
-void motorStraight() {
+void motorStraight() { 
   digitalWrite(in1,HIGH);    digitalWrite(in3,LOW);
   digitalWrite(in2,LOW);   digitalWrite(in4,HIGH);
   analogWrite(ena,255);     analogWrite(enb,255);
@@ -165,8 +164,7 @@ void motorTurnLeft() {
   analogWrite(ena,150);     analogWrite(enb,150); //the left wheel will not run below 150
 }
 
-/** driveForwardXDirection (4/14/2016 Austin)
- * Caution: used for fakebot only, does not move robot */ 
+/** driveForwardXDirection (4/14/2016 Austin) */ 
 void driveForwardXDirection(float x_goal, float y_ref) {
   while (marker.x < x_goal) {
     RFLoop();
@@ -176,6 +174,8 @@ void driveForwardXDirection(float x_goal, float y_ref) {
   }
 }
 
+/** control (4/29/2016 Yichao) 
+* change the wheel power supply based on the difference in theta */
 void control(float theta_ref, float theta_desired){
       float delta_theta   = marker.theta - theta_desired; //calculate difference between current and desired angle
       int delta_PWM     = (int)(abs(delta_theta*k));  //calculate speed difference based on angle differnece
@@ -186,68 +186,26 @@ void control(float theta_ref, float theta_desired){
       delay(300);
 }
 
-/** controlX (4/28/2016 Mitchell) */
-// void controlX(int xRefIn, int xTermIn) {
-//   digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
-//   digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
-  
-//   if (x.marker < xterm) {
-//     float delta_y       = marker.y-yref;
-//     float theta_desired = -1/2*arctan(delta_y);
-//     float delta_theta   = marker.theta - theta_desired;
-//     int delta_PWM     = (int)(abs(delta_theta*k));
-//     if(delta_PWM>255)   deltaPWM = 255;
-//     if (delta_theta > 0) {
-//       analogWrite(enb, 255);                   //these are ena and enb
-//       analogWrite(ena, 255-delta_PWM); 
-//     } else {
-//       analogWrite(ena, 255);
-//       analogWrite(enb, 255-delta_PWM);
-//     }
-//     delay(400);
-//     }
-//   else state++;
-// }
-
 /** driveForwardYDirection (4/14/2016 Austin) */ 
 void driveForwardYDirection(float y_goal, float x_ref, bool positive_dir) {
   float tolerance = .05;
-  float error = marker.y-y_ref;
-  float theta = -1/2*arctan(error);
+  float error, theta;
   if (positive_dir){ //moving up the field
-        while (marker.y - y_goal < -(tolerance)) {
-              RFLoop();
-              theta = theta + pi/2;
-              control(pi/2, theta);
-        }
+      while (marker.y - y_goal < -(tolerance)) {
+            RFLoop();
+            error = marker.y-y_ref;
+            theta = -1/2*arctan(error) + pi/2;
+            control(pi/2, theta);
+      }
   } else { //moving down the field
-        while(marker.y - y_goal > tolerance){
-              RFLoop();
-              theta = theta + 3*pi/2;
-              control(3*pi/2, theta);
-        }
+      while(marker.y - y_goal > tolerance){
+            RFLoop();
+            error = marker.y-y_ref;
+            theta = -1/2*arctan(error) + 3*pi/2;
+            control(3*pi/2, theta); 
+      }
   }
 }
-
-/** controlY (4/28/2016 Mitchell) */
-// void controlY(int xref, int yterm) {
-//   if (y.marker < yterm) {
-//     float delta_x       = marker.x-xref;
-//     float theta_desired = -1/2*arctan(delta_x);
-//     float delta_theta   = marker.theta-pi/2 - theta_desired;
-//     int delta_PWM       = (int)(abs(delta_theta*k));
-//     if(delta_PWM>255)   deltaPWM = 255;
-//     if (delta_theta > 0) {
-//       analogWrite(enb, 255);
-//       analogWrite(ena, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
-//     } else {
-//       analogWrite(ena, 255);
-//       analogWrite(enb, 255-delta_PWM);
-//     }
-//     delay(400);
-//   }
-//   else state++;
-// }
 
 /** turnLeft (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the left */ 
@@ -284,23 +242,24 @@ bool senseObstacle() {
 /**RFLoop (Keystone)
  * Read and print the x, y, theta orientation */ 
 void RFLoop() {
-    if(rf.receiveMarker(&marker, markerNumber))
+    if(rf.receiveMarker(&marker, markerNum))
   {
-    //rf.sendMessage("\nMarker is successfully being read\n");
-    //Serial.println("Marker value [x,y,theta] = ["+marker.x+","+marker.y+","+marker.theta+"]");
-    Serial.println("Panda Xpress is Reading Data");
+    rf.sendMessage("\nPX: read data");
+    Serial.print("PX: RF Data");
+    Serial.print(marker.x); Serial.print("|");
+    Serial.print(marker.y); Serial.print("|");
+    Serial.println(marker.theta);
   }
   else
   {
-    rf.sendMessage("\nMarker is not registering\n");
-    Serial.println("Marker is not registering");
-    //delay(500);
+    rf.sendMessage("\nPX: Marker not register");
+    Serial.println("PX: Marker is not registering");
+    delay(300);
   }
 }
 
 /** ping (4/28/2019 Yichao Peng)
- * Single ping for a given ultrasonic sensor
- */
+ * Single ping for a given ultrasonic sensor */
 long ping(int trig_pin, int echo_pin){
   digitalWrite(trig_pin, LOW); 
   delayMicroseconds(2); // Short LOW pulse beforehand ensures a clean HIGH pulse:
@@ -328,17 +287,17 @@ float multiplePing(int trig_pin, int echo_pin){
   else  {return duration /1.0 / trialNum; }
 }
 
+// 73.746 microseconds per inch (i.e. sound travels at 1130 feet per seconds
+// See: http://www.parallax.com/dl/docs/prod/acc/28015-PI...
 float microsecondsToInches(long microseconds)
-{  // 73.746 microseconds per inch (i.e. sound travels at 1130 feet per seconds
-  // See: http://www.parallax.com/dl/docs/prod/acc/28015-PI...
-  return microseconds / 73.746 / 2.0;
-}
+      {return microseconds / 73.746 / 2.0;}
 
+// The speed of sound is 340 m/s or 29 microseconds per centimeter.
 float microsecondsToCentimeters(long microseconds)
-{  // The speed of sound is 340 m/s or 29 microseconds per centimeter.
-  return microseconds / 29.41 / 2.0;
-}
+      {return microseconds / 29.41 / 2.0;}
 
+/** colorSensor (4/28/2016 Stephen)
+ * determine color of boulder and return value*/
 void colorSensor(){
   analogWrite(LED, 235);   //90% duty cycle for 4.5V
   delay(400);
@@ -353,6 +312,8 @@ void colorSensor(){
   analogWrite(LED,0);
 }
 
+/** allSensors (4/28/2016 Stephen) 
+* conduct mission measurement*/
 void allSensors(){
   duration_left   = multiplePing(trig_left_top,ultrasound_left_pin); //average multiple ping
   duration_top    = multiplePing(trig_left_top,ultrasound_top_pin);
@@ -364,10 +325,54 @@ void allSensors(){
   
   boulder_length  = arm_width - (inches_left + inches_right); //calculate length
   boulder_height  = arm_height - inches_top;                  //calculate height
-  boulder_area    = distance * height;                        //calculate area
+  boulder_area    = boulder_length * boulder_height;          //calculate area
   
   rf.sendMessage("\nLength: " + boulder_length + "in");
   rf.sendMessage("\nHeight: " + boulder_height + "in");
   rf.sendMessage("\nSurface Area: " + boulder_area + "in^2");
   rf.sendMessage("\nColor: ");        colorSensor();
 }
+
+/** controlY (4/28/2016 Mitchell) */
+// void controlY(int xref, int yterm) {
+//   if (y.marker < yterm) {
+//     float delta_x       = marker.x-xref;
+//     float theta_desired = -1/2*arctan(delta_x);
+//     float delta_theta   = marker.theta-pi/2 - theta_desired;
+//     int delta_PWM       = (int)(abs(delta_theta*k));
+//     if(delta_PWM>255)   deltaPWM = 255;
+//     if (delta_theta > 0) {
+//       analogWrite(enb, 255);
+//       analogWrite(ena, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
+//     } else {
+//       analogWrite(ena, 255);
+//       analogWrite(enb, 255-delta_PWM);
+//     }
+//     delay(400);
+//   }
+//   else state++;
+// }
+
+
+/** controlX (4/28/2016 Mitchell) */
+// void controlX(int xRefIn, int xTermIn) {
+//   digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
+//   digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
+  
+//   if (x.marker < xterm) {
+//     float delta_y       = marker.y-yref;
+//     float theta_desired = -1/2*arctan(delta_y);
+//     float delta_theta   = marker.theta - theta_desired;
+//     int delta_PWM     = (int)(abs(delta_theta*k));
+//     if(delta_PWM>255)   deltaPWM = 255;
+//     if (delta_theta > 0) {
+//       analogWrite(enb, 255);                   //these are ena and enb
+//       analogWrite(ena, 255-delta_PWM); 
+//     } else {
+//       analogWrite(ena, 255);
+//       analogWrite(enb, 255-delta_PWM);
+//     }
+//     delay(400);
+//     }
+//   else state++;
+// }
