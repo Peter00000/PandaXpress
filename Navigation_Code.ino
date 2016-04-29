@@ -142,27 +142,27 @@ void ultrasonicSetup() {
 
 /************** Motion Code *****************/
 void motorStraight() {
-  digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
-  digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
+  digitalWrite(in1,HIGH);    digitalWrite(in3,LOW);
+  digitalWrite(in2,LOW);   digitalWrite(in4,HIGH);
   analogWrite(ena,255);     analogWrite(enb,255);
 }
 
 void motorControl(int PWM_left, int PWM_right){
-  digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
-  digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
+  digitalWrite(in1,HIGH);    digitalWrite(in3,LOW);
+  digitalWrite(in2,LOW);   digitalWrite(in4,HIGH);
   analogWrite(ena,PWM_right);     analogWrite(enb,PWM_left);
 }
 
 void motorTurnRight() {
   digitalWrite(in1, LOW);   digitalWrite(in3, LOW);
   digitalWrite(in2, HIGH);  digitalWrite(in4, HIGH);
-  analogWrite(ena,100);     analogWrite(enb,100);
+  analogWrite(ena,150);     analogWrite(enb,150);
 }
 
 void motorTurnLeft() {
   digitalWrite(in1, HIGH);  digitalWrite(in3, HIGH);
   digitalWrite(in2, LOW);   digitalWrite(in4, LOW);
-  analogWrite(ena,100);     analogWrite(enb,100);
+  analogWrite(ena,150);     analogWrite(enb,150); //the left wheel will not run below 150
 }
 
 /** driveForwardXDirection (4/14/2016 Austin)
