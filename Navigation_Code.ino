@@ -172,17 +172,17 @@ void controlX(int xRefIn, int xTermIn) {
   digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
   
   if (x.marker < xterm) {
-    delta_y       = marker.y-yref;
-    theta_desired = -1/2*arctan(delta_y);
-    delta_theta   = marker.theta - theta_desired;
-    delta_PWM     = int(abs(delta_theta*k));
+    float delta_y       = marker.y-yref;
+    float theta_desired = -1/2*arctan(delta_y);
+    float delta_theta   = marker.theta - theta_desired;
+    int delta_PWM     = (int)(abs(delta_theta*k));
     if(delta_PWM>255)   deltaPWM = 255;
     if (delta_theta > 0) {
-      analogWrite(left_wheel, 255);                   //these are ena and enb
-      analogWrite(right_wheel, 255-delta_PWM); 
+      analogWrite(enb, 255);                   //these are ena and enb
+      analogWrite(ena, 255-delta_PWM); 
     } else {
-      analogWrite(right_wheel, 255);
-      analogWrite(left_wheel, 255-delta_PWM);
+      analogWrite(ena, 255);
+      analogWrite(enb, 255-delta_PWM);
     }
     delay(400);
     }
@@ -200,19 +200,19 @@ void driveForwardYDirection(float yValue) {
 }
 
 /** controlY (4/28/2016 Mitchell) */
-void controlY(int yRefIn, int yTermIn) {
+void controlY(int xref, int yterm) {
   if (y.marker < yterm) {
-    delta_x       = marker.x-xref;
-    theta_desired = -1/2*arctan(delta_x);
-    delta_theta   = marker.theta-pi/2 - theta_desired;
-    delta_PWM     = int(abs(delta_theta*k));
+    float delta_x       = marker.x-xref;
+    float theta_desired = -1/2*arctan(delta_x);
+    float delta_theta   = marker.theta-pi/2 - theta_desired;
+    int delta_PWM       = (int)(abs(delta_theta*k));
     if(delta_PWM>255)   deltaPWM = 255;
     if (delta_theta > 0) {
-      analogWrite(left_wheel, 255);
-      analogWrite(right_wheel, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
+      analogWrite(enb, 255);
+      analogWrite(ena, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
     } else {
-      analogWrite(right_wheel, 255);
-      analogWrite(left_wheel, 255-delta_PWM);
+      analogWrite(ena, 255);
+      analogWrite(enb, 255-delta_PWM);
     }
     delay(400);
   }
