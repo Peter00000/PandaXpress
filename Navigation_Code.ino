@@ -59,21 +59,21 @@ void loop() {
     case 0: break;
     case 1: //OSV is in landing zone
       turnRight(0);
-      driveForwardXDirection(1);
+      driveForwardXDirection(0.62,marker.y);
       state = 2; break; //this should be in the control code
     case 2: //OSV is at edge of landing zone
       bool obstacle;
       obstacle = senseObstacle();
       //turnLeft(pi/2);
-      if(obstacle == true){
+      if(obstacle == true){ //need to recode this part
         if(marker.y > 1){
           turnRight(-pi/2);
-          driveForwardYDirection(1);
+          driveForwardYDirection(1,0.62, false);
           turnLeft(0);
           break;
         } else {
           turnLeft(pi/2);
-          driveForwardYDirection(1);
+          driveForwardYDirection(1,0.62,true);
           turnRight(0);
           break;
         }
@@ -86,22 +86,24 @@ void loop() {
       if (marker.y != 1) {
         if (marker.y > 1) {
           turnRight(-pi/2);
-          driveForwardYDirection(1); //need to update for the new control code
+          driveForwardYDirection(1,0.62,false); //need to update for the new control code
           turnLeft(0);
             
         } else {
           turnLeft(pi/2);
-          driveForwardYDirection(1);
+          driveForwardYDirection(1,0.62,true);
           turnRight(0);
         }
       }
-      driveForwardXDirection(3.5);
+      driveForwardXDirection(3.2,1);
       state = 4;
       break;
     case 4://OSV is now at the x value of the Terrain Site
       turnLeft(pi/2);
-      driveForwardYDirection(1.5);
+      driveForwardYDirection(1.5,3.2,true);
       turnRight(0);
+      //move forward until hit boulder
+      //call allSensors();
       state = 0;
       break;  
   }
@@ -145,6 +147,12 @@ void motorStraight() {
   analogWrite(ena,255);     analogWrite(enb,255);
 }
 
+void motorControl(int PWM_left, int PWM_right){
+  digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
+  digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
+  analogWrite(ena,PWM_right);     analogWrite(enb,PWM_left);
+}
+
 void motorTurnRight() {
   digitalWrite(in1, LOW);   digitalWrite(in3, LOW);
   digitalWrite(in2, HIGH);  digitalWrite(in4, HIGH);
@@ -159,65 +167,87 @@ void motorTurnLeft() {
 
 /** driveForwardXDirection (4/14/2016 Austin)
  * Caution: used for fakebot only, does not move robot */ 
-void driveForwardXDirection(float xValue) {
+void driveForwardXDirection(float x_goal, float y_ref) {
   while (marker.x < xValue) {
-    motorStraight();
     RFLoop();
+    float error = marker.y-y_ref;
+    float theta = -1/2*arctan(error);
+    control(0, theta);
   }
 }
 
-/** controlX (4/28/2016 Mitchell) */
-void controlX(int xRefIn, int xTermIn) {
-  digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
-  digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
-  
-  if (x.marker < xterm) {
-    float delta_y       = marker.y-yref;
-    float theta_desired = -1/2*arctan(delta_y);
-    float delta_theta   = marker.theta - theta_desired;
-    int delta_PWM     = (int)(abs(delta_theta*k));
-    if(delta_PWM>255)   deltaPWM = 255;
-    if (delta_theta > 0) {
-      analogWrite(enb, 255);                   //these are ena and enb
-      analogWrite(ena, 255-delta_PWM); 
-    } else {
-      analogWrite(ena, 255);
-      analogWrite(enb, 255-delta_PWM);
-    }
-    delay(400);
-    }
-  else state++;
+void control(float theta_ref, float theta_desired){
+      float delta_theta   = marker.theta - theta_desired; //calculate difference between current and desired angle
+      int delta_PWM     = (int)(abs(delta_theta*k));  //calculate speed difference based on angle differnece
+      if(delta_PWM>255)       delta_PWM = 255;
+      if (delta_theta > theta_ref) 
+            motorControl(255,255-deltaPWM);
+      else  motorControl(255-deltaPWM,255);
+      delay(300);
 }
 
-/** driveForwardYDirection (4/14/2016 Austin)
- * Caution: use for fakebot only, does not move robot */ 
-void driveForwardYDirection(float yValue) {
+/** controlX (4/28/2016 Mitchell) */
+// void controlX(int xRefIn, int xTermIn) {
+//   digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
+//   digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
+  
+//   if (x.marker < xterm) {
+//     float delta_y       = marker.y-yref;
+//     float theta_desired = -1/2*arctan(delta_y);
+//     float delta_theta   = marker.theta - theta_desired;
+//     int delta_PWM     = (int)(abs(delta_theta*k));
+//     if(delta_PWM>255)   deltaPWM = 255;
+//     if (delta_theta > 0) {
+//       analogWrite(enb, 255);                   //these are ena and enb
+//       analogWrite(ena, 255-delta_PWM); 
+//     } else {
+//       analogWrite(ena, 255);
+//       analogWrite(enb, 255-delta_PWM);
+//     }
+//     delay(400);
+//     }
+//   else state++;
+// }
+
+/** driveForwardYDirection (4/14/2016 Austin) */ 
+void driveForwardYDirection(float y_goal, float x_ref, bool positive_dir) {
   float tolerance = .05;
-  while (marker.y - yValue < -(tolerance) || marker.y - yValue > tolerance) {
-    motorStraight();
-    RFLoop();
+  float error = marker.y-y_ref;
+  float theta = -1/2*arctan(error);
+  if (positive_dir){ //moving up the field
+        while (marker.y - y_goal < -(tolerance)) {
+              RFLoop();
+              theta = theta + pi/2;
+              control(pi/2, theta);
+        }
+  } else { //moving down the field
+        while(marker.y - y_goal > tolerance){
+              RFLoop();
+              theta = theta + 3*pi/2;
+              control(3*pi/2, theta);
+        }
   }
 }
 
 /** controlY (4/28/2016 Mitchell) */
-void controlY(int xref, int yterm) {
-  if (y.marker < yterm) {
-    float delta_x       = marker.x-xref;
-    float theta_desired = -1/2*arctan(delta_x);
-    float delta_theta   = marker.theta-pi/2 - theta_desired;
-    int delta_PWM       = (int)(abs(delta_theta*k));
-    if(delta_PWM>255)   deltaPWM = 255;
-    if (delta_theta > 0) {
-      analogWrite(enb, 255);
-      analogWrite(ena, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
-    } else {
-      analogWrite(ena, 255);
-      analogWrite(enb, 255-delta_PWM);
-    }
-    delay(400);
-  }
-  else state++;
-}
+// void controlY(int xref, int yterm) {
+//   if (y.marker < yterm) {
+//     float delta_x       = marker.x-xref;
+//     float theta_desired = -1/2*arctan(delta_x);
+//     float delta_theta   = marker.theta-pi/2 - theta_desired;
+//     int delta_PWM       = (int)(abs(delta_theta*k));
+//     if(delta_PWM>255)   deltaPWM = 255;
+//     if (delta_theta > 0) {
+//       analogWrite(enb, 255);
+//       analogWrite(ena, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
+//     } else {
+//       analogWrite(ena, 255);
+//       analogWrite(enb, 255-delta_PWM);
+//     }
+//     delay(400);
+//   }
+//   else state++;
+// }
 
 /** turnLeft (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the left */ 
@@ -226,6 +256,7 @@ void turnLeft(float orientation) {
   while (marker.theta - orientation < -(tolerance)) {
     RFLoop();
     motorTurnLeft();
+    delay(200);
   }
 }
 
@@ -236,6 +267,7 @@ void turnRight(float orientation) {
   while (marker.theta - orientation > tolerance) {
     RFLoop();
     motorTurnRight();
+    delay(200);
   }
 }
 
