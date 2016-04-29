@@ -287,8 +287,8 @@ void RFLoop() {
     if(rf.receiveMarker(&marker, markerNumber))
   {
     //rf.sendMessage("\nMarker is successfully being read\n");
-    Serial.println("Marker value [x,y,theta] = ["+marker.x+","+marker.y+","+marker.theta+"]");
-    //rf.sendMessage("Panda Xpress is Reading Data");
+    //Serial.println("Marker value [x,y,theta] = ["+marker.x+","+marker.y+","+marker.theta+"]");
+    Serial.println("Panda Xpress is Reading Data");
   }
   else
   {
