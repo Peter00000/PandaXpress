@@ -1,9 +1,10 @@
 /************* Program variables ************/
 int state = 1;
 float photoresistorSignal;
-float duration_left, duration_top, duration_right, 
+float duration_left, duration_top, duration_right, duration_side,
       inches_left, inches_right, inches_top;   //ultrasonic reading
 float boulder_length, boulder_height, boulder_area, voltage;
+int obstacleCount = 0;
 
 /**************** Constants *****************/
 const int markerNum = 113;    //update this when receive new marker
@@ -15,8 +16,8 @@ const long lower    = 150;    //only apply when averaging multiple trials
 const float arm_width   = 13;   //inches between left and right ultrasonic sensor
 const float arm_height  = 15;   //inches between top ultrasonic and ground
 const float color_cutoff = 3.7; //color cutoff voltage
-const int k = 150;              //constant relate delta_angle to delta_PWM
-
+const int k = 200;              //constant relate delta_angle to delta_PWM
+const int maxCount = 4;
 /************** Pin Variables ***************/
 int in3 = 2;  int in4 = 3;  
 int enb = 4;  int ena = 5; //ena: right wheel   enb: left wheel
@@ -57,30 +58,18 @@ void loop() {
   switch(state) {
     case 0: break;
     case 1: //OSV is in landing zone
+      turnRight(-pi/2);
+      driveForwardYDirection(0.2, marker.x, false);
+      turnLeft(0);
+      driveForwardXDirection(.8, marker.y);
+      state = 2; 
+      break; //this shoss at edge of landing zone
+    case 2:  
+      turnLeft(pi/2);
+      driveForwardYDirectionSensor();
       turnRight(0);
-      driveForwardXDirection(0.62,marker.y);
-      state = 2; break; //this should be in the control code
-    case 2: //OSV is at edge of landing zone
-      bool obstacle;
-      obstacle = senseObstacle();
-      //turnLeft(pi/2);
-      if(obstacle == true){ //need to recode this part
-        if(marker.y > 1){
-          turnRight(-pi/2);
-          driveForwardYDirection(1,0.62, false);
-          turnLeft(0);
-          break;
-        } else {
-          turnLeft(pi/2);
-          driveForwardYDirection(1,0.62,true);
-          turnRight(0);
-          break;
-        }
-      } else {
-        //turnRight(0);
-        state = 3;
-        break;
-      }
+      state = 3;
+      break;
     case 3://OSV can now move forward because no obstacles are in the way
       if (marker.y != 1) {
         if (marker.y > 1) {
@@ -103,8 +92,12 @@ void loop() {
       turnRight(0);
       //move forward until hit boulder
       //call allSensors();
-      state = 0;
+      state = 5;
       break;  
+    case 5:
+      motorStraight();
+      delay(500);
+      allSensors();
   }
 }
 
@@ -146,6 +139,12 @@ void motorStraight() {
   analogWrite(ena,255);     analogWrite(enb,255);
 }
 
+void motorBack() { 
+  digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
+  digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
+  analogWrite(ena,255);     analogWrite(enb,255);
+}
+
 void motorControl(int PWM_left, int PWM_right){
   digitalWrite(in1,HIGH);    digitalWrite(in3,LOW);
   digitalWrite(in2,LOW);   digitalWrite(in4,HIGH);
@@ -169,7 +168,7 @@ void driveForwardXDirection(float x_goal, float y_ref) {
   while (marker.x < x_goal) {
     RFLoop();
     float error = marker.y-y_ref;
-    float theta = -1/2*atan(error);
+    float theta = -0.5*atan(error);
     control(0, theta);
   }
 }
@@ -189,24 +188,40 @@ void control(float theta_ref, float theta_desired){
 /** driveForwardYDirection (4/14/2016 Austin) */ 
 void driveForwardYDirection(float y_goal, float x_ref, bool positive_dir) {
   float tolerance = .05;
-  float error, theta;
+  float error, y_ref;
+  double theta;
   if (positive_dir){ //moving up the field
       while (marker.y - y_goal < -(tolerance)) {
             RFLoop();
             error = marker.y-y_ref;
-            theta = -1/2*arctan(error) + pi/2;
+            theta = -1/2*atan(error) + pi/2;
             control(pi/2, theta);
       }
   } else { //moving down the field
       while(marker.y - y_goal > tolerance){
             RFLoop();
             error = marker.y-y_ref;
-            theta = -1/2*arctan(error) + 3*pi/2;
-            control(3*pi/2, theta); 
+            theta = -1/2*atan(error) -pi/2;
+            control(-pi/2, theta); 
       }
   }
 }
 
+void driveForwardYDirectionSensor() {
+  bool obstacle;
+  while (true) {
+    motorStraight();
+    obstacle = senseObstacle();
+    if(!obstacle) obstacleCount++;
+    else obstacleCount = 0;
+    if(obstacleCount > maxCount) break;
+  } 
+  //motorBack();
+  //delay(1000);
+  
+  
+
+}
 /** turnLeft (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the left */ 
 void turnLeft(float orientation) {
@@ -235,7 +250,10 @@ void turnRight(float orientation) {
  * Determines if the obsticle exist based on the ultrasonic reading
  * Caution: need to modify for better path finding, does not remember past values */ 
 bool senseObstacle() {
-  if (inches != 0) {return true;}
+  float inches_side;
+  duration_side   = ping(trig_right_side,ultrasound_side_pin);
+  inches_side     = microsecondsToInches(duration_side);
+  if (inches_side < 10) {return true;}
   else {return false;}
 }
 
@@ -299,6 +317,7 @@ float microsecondsToCentimeters(long microseconds)
 /** colorSensor (4/28/2016 Stephen)
  * determine color of boulder and return value*/
 void colorSensor(){
+  float colorCutoff;
   analogWrite(LED, 235);   //90% duty cycle for 4.5V
   delay(400);
   photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin
@@ -327,52 +346,15 @@ void allSensors(){
   boulder_height  = arm_height - inches_top;                  //calculate height
   boulder_area    = boulder_length * boulder_height;          //calculate area
   
-  rf.sendMessage("\nLength: " + boulder_length + "in");
-  rf.sendMessage("\nHeight: " + boulder_height + "in");
-  rf.sendMessage("\nSurface Area: " + boulder_area + "in^2");
-  rf.sendMessage("\nColor: ");        colorSensor();
+  rf.sendMessage("\nLength: ");
+  rf.sendMessage(boulder_length);
+  rf.sendMessage("in");
+  rf.sendMessage("\nHeight: ");
+  rf.sendMessage(boulder_height);  
+  rf.sendMessage("in");
+  rf.sendMessage("\nSurface Area: ");
+  rf.sendMessage(boulder_area);
+  rf.sendMessage("in^2");
+  rf.sendMessage("\nColor: ");        
+  colorSensor();
 }
-
-/** controlY (4/28/2016 Mitchell) */
-// void controlY(int xref, int yterm) {
-//   if (y.marker < yterm) {
-//     float delta_x       = marker.x-xref;
-//     float theta_desired = -1/2*arctan(delta_x);
-//     float delta_theta   = marker.theta-pi/2 - theta_desired;
-//     int delta_PWM       = (int)(abs(delta_theta*k));
-//     if(delta_PWM>255)   deltaPWM = 255;
-//     if (delta_theta > 0) {
-//       analogWrite(enb, 255);
-//       analogWrite(ena, 255-delta_PWM); //right_wheel pin4? and leftwheel pin 5?
-//     } else {
-//       analogWrite(ena, 255);
-//       analogWrite(enb, 255-delta_PWM);
-//     }
-//     delay(400);
-//   }
-//   else state++;
-// }
-
-
-/** controlX (4/28/2016 Mitchell) */
-// void controlX(int xRefIn, int xTermIn) {
-//   digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
-//   digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
-  
-//   if (x.marker < xterm) {
-//     float delta_y       = marker.y-yref;
-//     float theta_desired = -1/2*arctan(delta_y);
-//     float delta_theta   = marker.theta - theta_desired;
-//     int delta_PWM     = (int)(abs(delta_theta*k));
-//     if(delta_PWM>255)   deltaPWM = 255;
-//     if (delta_theta > 0) {
-//       analogWrite(enb, 255);                   //these are ena and enb
-//       analogWrite(ena, 255-delta_PWM); 
-//     } else {
-//       analogWrite(ena, 255);
-//       analogWrite(enb, 255-delta_PWM);
-//     }
-//     delay(400);
-//     }
-//   else state++;
-// }
