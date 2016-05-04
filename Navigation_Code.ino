@@ -13,11 +13,12 @@ const int repeatNo  = 5;      //for multiple ultrasonic read
 const int interval  = 200;    //ms wait
 const long upper    = 1200;   //filter out unwanted data in ultrasonic reading
 const long lower    = 150;    //only apply when averaging multiple trials
-const float arm_width   = 13;   //inches between left and right ultrasonic sensor
-const float arm_height  = 15;   //inches between top ultrasonic and ground
-const float color_cutoff = 3.7; //color cutoff voltage
+const float arm_width   = 13.75;   //inches between left and right ultrasonic sensor
+const float arm_height  = 13;   //inches between top ultrasonic and ground
+  float blackCutOff = .25;   // this should be tested with the boulder
+  float greenCutOff = .45;
 const int k = 200;              //constant relate delta_angle to delta_PWM
-const int maxCount = 4;
+const int maxCount = 3;
 /************** Pin Variables ***************/
 int in3 = 2;  int in4 = 3;  
 int enb = 4;  int ena = 5; //ena: right wheel   enb: left wheel
@@ -59,14 +60,15 @@ void loop() {
     case 0: break;
     case 1: //OSV is in landing zone
       turnRight(-pi/2);
-      driveForwardYDirection(0.2, marker.x, false);
+      if(marker.y> 0.4) 
+            driveForwardYDirection(0.3, marker.x, false);
       turnLeft(0);
-      driveForwardXDirection(.8, marker.y);
+      driveForwardXDirection(.7, 0.3);
       state = 2; 
       break; //this shoss at edge of landing zone
     case 2:  
       turnLeft(pi/2);
-      driveForwardYDirectionSensor();
+      driveForwardYDirectionSensor(); //scans for an opening between obsticles
       turnRight(0);
       state = 3;
       break;
@@ -74,30 +76,30 @@ void loop() {
       if (marker.y != 1) {
         if (marker.y > 1) {
           turnRight(-pi/2);
-          driveForwardYDirection(1,0.62,false); //need to update for the new control code
+          driveForwardYDirection(1,1.5,false); //need to update for the new control code
           turnLeft(0);
             
         } else {
           turnLeft(pi/2);
-          driveForwardYDirection(1,0.62,true);
+          driveForwardYDirection(1,1.5,true);
           turnRight(0);
         }
       }
-      driveForwardXDirection(3.2,1);
+      driveForwardXDirection(3.1,1);
       state = 4;
       break;
     case 4://OSV is now at the x value of the Terrain Site
       turnLeft(pi/2);
-      driveForwardYDirection(1.5,3.2,true);
+      driveForwardYDirection(1.3,3.1,true);
       turnRight(0);
       //move forward until hit boulder
-      //call allSensors();
       state = 5;
       break;  
     case 5:
       motorStraight();
-      delay(500);
-      allSensors();
+      delay(1200);
+      motorControl(0,0); //stop the motor running before measure
+      allSensors();     //mission code
   }
 }
 
@@ -134,33 +136,47 @@ void ultrasonicSetup() {
 
 /************** Motion Code *****************/
 void motorStraight() { 
-  digitalWrite(in1,HIGH);    digitalWrite(in3,LOW);
-  digitalWrite(in2,LOW);   digitalWrite(in4,HIGH);
-  analogWrite(ena,255);     analogWrite(enb,255);
+  digitalWrite(in1,HIGH);     digitalWrite(in3,LOW);
+  digitalWrite(in2,LOW);      digitalWrite(in4,HIGH);
+  analogWrite(ena,255);       analogWrite(enb,255);
 }
 
 void motorBack() { 
-  digitalWrite(in1,LOW);    digitalWrite(in3,HIGH);
-  digitalWrite(in2,HIGH);   digitalWrite(in4,LOW);
-  analogWrite(ena,255);     analogWrite(enb,255);
+  digitalWrite(in1,LOW);      digitalWrite(in3,HIGH);
+  digitalWrite(in2,HIGH);     digitalWrite(in4,LOW);
+  analogWrite(ena,255);       analogWrite(enb,255);
 }
 
 void motorControl(int PWM_left, int PWM_right){
-  digitalWrite(in1,HIGH);    digitalWrite(in3,LOW);
-  digitalWrite(in2,LOW);   digitalWrite(in4,HIGH);
-  analogWrite(ena,PWM_right);     analogWrite(enb,PWM_left);
+  digitalWrite(in1,HIGH);     digitalWrite(in3,LOW);
+  digitalWrite(in2,LOW);      digitalWrite(in4,HIGH);
+  analogWrite(ena,PWM_right); analogWrite(enb,PWM_left);
 }
 
 void motorTurnRight() {
   digitalWrite(in1, LOW);   digitalWrite(in3, LOW);
   digitalWrite(in2, HIGH);  digitalWrite(in4, HIGH);
-  analogWrite(ena,150);     analogWrite(enb,150);
+  analogWrite(ena,170);     analogWrite(enb,170);
 }
 
 void motorTurnLeft() {
   digitalWrite(in1, HIGH);  digitalWrite(in3, HIGH);
   digitalWrite(in2, LOW);   digitalWrite(in4, LOW);
-  analogWrite(ena,150);     analogWrite(enb,150); //the left wheel will not run below 150
+  analogWrite(ena,170);     analogWrite(enb,170); //the left wheel will not run below 150
+}
+
+/** control (4/29/2016 Yichao) 
+* change the wheel power supply based on the difference in theta */
+void control(float theta_ref, float theta_desired){
+      float delta_theta   = marker.theta - theta_desired; //calculate difference between current and desired angle
+      int delta_PWM     = (int)(abs(delta_theta*k));  //calculate speed difference based on angle differnece
+      if(delta_PWM>127){
+            if(delta_theta > theta_ref){
+                  motorTurnRight(); return;}
+            else{ motorTurnLeft(); return;}}
+      if (delta_theta > theta_ref) 
+            motorControl(255,255-delta_PWM);
+      else  motorControl(255-delta_PWM,255);
 }
 
 /** driveForwardXDirection (4/14/2016 Austin) */ 
@@ -171,18 +187,7 @@ void driveForwardXDirection(float x_goal, float y_ref) {
     float theta = -0.5*atan(error);
     control(0, theta);
   }
-}
-
-/** control (4/29/2016 Yichao) 
-* change the wheel power supply based on the difference in theta */
-void control(float theta_ref, float theta_desired){
-      float delta_theta   = marker.theta - theta_desired; //calculate difference between current and desired angle
-      int delta_PWM     = (int)(abs(delta_theta*k));  //calculate speed difference based on angle differnece
-      if(delta_PWM>255)       delta_PWM = 255;
-      if (delta_theta > theta_ref) 
-            motorControl(255,255-delta_PWM);
-      else  motorControl(255-delta_PWM,255);
-      delay(300);
+  motorControl(0,0); //stop the motor when the destination is reached
 }
 
 /** driveForwardYDirection (4/14/2016 Austin) */ 
@@ -202,9 +207,10 @@ void driveForwardYDirection(float y_goal, float x_ref, bool positive_dir) {
             RFLoop();
             error = marker.y-y_ref;
             theta = -1/2*atan(error) -pi/2;
-            control(-pi/2, theta); 
+            control(-pi/2, theta);
       }
   }
+  motorControl(0,0); //stop the motor when the destination is reached
 }
 
 void driveForwardYDirectionSensor() {
@@ -218,10 +224,8 @@ void driveForwardYDirectionSensor() {
   } 
   //motorBack();
   //delay(1000);
-  
-  
-
 }
+
 /** turnLeft (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the left */ 
 void turnLeft(float orientation) {
@@ -229,8 +233,8 @@ void turnLeft(float orientation) {
   while (marker.theta - orientation < -(tolerance)) {
     RFLoop();
     motorTurnLeft();
-    //delay(200);
   }
+  motorControl(0,0); //stop the motor when the angle is reached
 }
 
 /** turnRight (4/14/2016 Austin)
@@ -240,8 +244,8 @@ void turnRight(float orientation) {
   while (marker.theta - orientation > tolerance) {
     RFLoop();
     motorTurnRight();
-    //delay(200);
   }
+  motorControl(0,0); //stop the motor when the angle is reached
 }
 
 /************** Sensor Code ******************/
@@ -253,7 +257,7 @@ bool senseObstacle() {
   float inches_side;
   duration_side   = ping(trig_right_side,ultrasound_side_pin);
   inches_side     = microsecondsToInches(duration_side);
-  if (inches_side < 10) {return true;}
+  if (inches_side < 12) {return true;}
   else {return false;}
 }
 
@@ -262,15 +266,17 @@ bool senseObstacle() {
 void RFLoop() {
     if(rf.receiveMarker(&marker, markerNum))
   {
-    rf.sendMessage("\nPX: read data");
-    Serial.print("PX: RF Data");
-    Serial.print(marker.x); Serial.print("|");
-    Serial.print(marker.y); Serial.print("|");
-    Serial.println(marker.theta);
+    //rf.sendMessage("\nPX: read data");
+//     Serial.print("PX: RF Data");
+//     Serial.print(marker.x); Serial.print("|");
+//     Serial.print(marker.y); Serial.print("|");
+//     Serial.println(marker.theta);
+      analogWrite(LED, 0); //turn the LED off when it is receiving the signal
   }
   else
   {
-    rf.sendMessage("\nPX: Marker not register");
+    //rf.sendMessage("\nPX: Marker not register");
+    analogWrite(LED, 235);  //turn the LED on when ping fails
     Serial.println("PX: Marker is not registering");
     //delay(300);
   }
@@ -317,17 +323,15 @@ float microsecondsToCentimeters(long microseconds)
 /** colorSensor (4/28/2016 Stephen)
  * determine color of boulder and return value*/
 void colorSensor(){
-  float blackCutOff = .25;   // this should be tested with the boulder
-  float greenCutOff = .45;
   analogWrite(LED, 235);   //90% duty cycle for 4.5V
   delay(400);
   photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin
   voltage= (5.0*photoresistorSignal)/1023;           //convert the signal to a scale of 0 to 5 V
   Serial.println(voltage);
-  if(voltage > blackCutOff && voltage < greenCutoff ){      //3.70 volt is the estimate for when you put your finger over the light sensor.
-   rf.sendMessage("Green");                  // if the voltage reading is less than 3.70, the LED stays off
+  if(voltage > blackCutOff && voltage < greenCutOff ){
+      rf.sendMessage("Green");
   } else if(voltage < blackCutOff){
-   rf.sendMessage("Black");                  // if the voltage reading is more than 3.70, the LED stays on
+      rf.sendMessage("Black");
   }
   analogWrite(LED,0);
 }
@@ -347,7 +351,7 @@ void allSensors(){
   boulder_height  = arm_height - inches_top;                  //calculate height
   boulder_area    = boulder_length * boulder_height;          //calculate area
   
-  rf.sendMessage("\nLength: ");
+  rf.sendMessage("\nLength: ");     //send the message back to mission control
   rf.sendMessage(boulder_length);
   rf.sendMessage("in");
   rf.sendMessage("\nHeight: ");
