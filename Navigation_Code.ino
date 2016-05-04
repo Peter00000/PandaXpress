@@ -317,15 +317,16 @@ float microsecondsToCentimeters(long microseconds)
 /** colorSensor (4/28/2016 Stephen)
  * determine color of boulder and return value*/
 void colorSensor(){
-  float colorCutoff;
+  float blackCutOff = .25;   // this should be tested with the boulder
+  float greenCutOff = .45;
   analogWrite(LED, 235);   //90% duty cycle for 4.5V
   delay(400);
   photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin
   voltage= (5.0*photoresistorSignal)/1023;           //convert the signal to a scale of 0 to 5 V
   Serial.println(voltage);
-  if(voltage < colorCutoff ){                        //3.70 volt is the estimate for when you put your finger over the light sensor.
+  if(voltage > blackCutOff && voltage < greenCutoff ){      //3.70 volt is the estimate for when you put your finger over the light sensor.
    rf.sendMessage("Green");                  // if the voltage reading is less than 3.70, the LED stays off
-  } else {
+  } else if(voltage < blackCutOff){
    rf.sendMessage("Black");                  // if the voltage reading is more than 3.70, the LED stays on
   }
   analogWrite(LED,0);
