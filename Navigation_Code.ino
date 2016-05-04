@@ -83,18 +83,16 @@ void loop() {
       if (marker.y != 1) {
         if (marker.y > 1) {
           turnRight(-pi/2);
-          driveForwardYDirection(1,1.6,false); //need to update for the new control code
-          turnLeft(0);
-            
+          driveForwardYDirection(1,1.6,false);
         } else {
           turnLeft(pi/2);
           driveForwardYDirection(1,1.6,true);
-          turnRight(0);
         }
       }
       state = 4;      break;
       
     case 4: //moving in the middle of field
+      turnLeft(0);
       driveForwardXDirection(3.1,1);
       state = 5;      break;
       
@@ -111,7 +109,9 @@ void loop() {
       allSensors();     //mission code
       state = 7;  break;
     
-    case 7: delay(500); break; //robot stay put
+    case 7: 
+    motorControl(0,0);
+    delay(500); break; //robot stay put
   }
 }
 
