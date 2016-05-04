@@ -1,10 +1,11 @@
 /************* Program variables ************/
-int state = 1;
+int state = 0;
 float photoresistorSignal;
 float duration_left, duration_top, duration_right, duration_side,
       inches_left, inches_right, inches_top;   //ultrasonic reading
 float boulder_length, boulder_height, boulder_area, voltage;
 int obstacleCount = 0;
+bool rf_success = false;
 
 /**************** Constants *****************/
 const int markerNum = 113;    //update this when receive new marker
@@ -19,6 +20,7 @@ const float arm_height  = 13;   //inches between top ultrasonic and ground
   float greenCutOff = .45;
 const int k = 200;              //constant relate delta_angle to delta_PWM
 const int maxCount = 3;
+
 /************** Pin Variables ***************/
 int in3 = 2;  int in4 = 3;  
 int enb = 4;  int ena = 5; //ena: right wheel   enb: left wheel
@@ -49,6 +51,8 @@ void setup() {
   RFSetup();
   motorSetup();
   ultrasonicSetup();
+  calculateVecicleState();    //will guess which state the vehicle is in
+                              //prevent code from starting until successful receive GPS coordinates
 }
 
 /** loop  (4/14/2016  Austin)
@@ -57,49 +61,57 @@ void setup() {
 void loop() {
   RFLoop();
   switch(state) {
-    case 0: break;
-    case 1: //OSV is in landing zone
+    case 0: //OSV move toward bottom-left corner (origin)
       turnRight(-pi/2);
-      if(marker.y> 0.4) 
+      //if(marker.y> 0.4) 
             driveForwardYDirection(0.3, marker.x, false);
+      state = 1;  break;
+      
+    case 1: //OSV move to edge of landing zone
       turnLeft(0);
-      driveForwardXDirection(.7, 0.3);
-      state = 2; 
-      break; //this shoss at edge of landing zone
-    case 2:  
+      driveForwardXDirection(.7, 0.3); //arrive at the edge of landing zone
+      state = 2;  break; 
+
+    case 2:       //move rover past the obstacles
       turnLeft(pi/2);
       driveForwardYDirectionSensor(); //scans for an opening between obsticles
       turnRight(0);
-      state = 3;
-      break;
-    case 3://OSV can now move forward because no obstacles are in the way
+      driveForwardXDirection(marker.x, 1.6);
+      state = 3;  break;
+      
+    case 3:       //move to the center of field
       if (marker.y != 1) {
         if (marker.y > 1) {
           turnRight(-pi/2);
-          driveForwardYDirection(1,1.5,false); //need to update for the new control code
+          driveForwardYDirection(1,1.6,false); //need to update for the new control code
           turnLeft(0);
             
         } else {
           turnLeft(pi/2);
-          driveForwardYDirection(1,1.5,true);
+          driveForwardYDirection(1,1.6,true);
           turnRight(0);
         }
       }
+      state = 4;      break;
+      
+    case 4: //moving in the middle of field
       driveForwardXDirection(3.1,1);
-      state = 4;
-      break;
-    case 4://OSV is now at the x value of the Terrain Site
+      state = 5;      break;
+      
+    case 5://OSV is now at the x value of the Terrain Site
       turnLeft(pi/2);
       driveForwardYDirection(1.3,3.1,true);
-      turnRight(0);
-      //move forward until hit boulder
-      state = 5;
-      break;  
-    case 5:
+      turnRight(0); //facing the boulder
+      state = 6;  break;  
+      
+    case 6: //navigating toward the boulder and conduct experiment
       motorStraight();
       delay(1200);
       motorControl(0,0); //stop the motor running before measure
       allSensors();     //mission code
+      state = 7;  break;
+    
+    case 7: delay(500); break; //robot stay put
   }
 }
 
@@ -132,6 +144,21 @@ void ultrasonicSetup() {
   pinMode(trig_left_top, OUTPUT);
   pinMode(trig_right_side, OUTPUT);
   pinMode(LED, OUTPUT);
+}
+
+/** calculateVehicleState (5/3/2016 Yichao) */
+void calculateVecicleState(){
+      while(!rf_success){
+            delay(300);
+            RFLoop();}  //keep pinging until receive response
+      if(marker.y>0.35 && marker.x<0.9)                     return;
+      if(marker.y<0.35 && marker.x<0.6)                     {state = 1; return;}
+      if(marker.y<0.5 && marker.x>0.65 && marker.x<0.75)    {state = 2; return;}
+      if(marker.x>1.4 && marker.x<2.9 &&
+            marker.y>0.9 && marker.y<1.1)                   {state = 4; return;}
+      if(marker.x>1.4 && marker.x<1.7)                      {state = 3; return;}
+      if(marker.x>3.0 && marker.x<3.15 && marker.y<1.15)    {state = 5; return;}
+      if(marker.x>3.0 && marker.x<3.40 && marker.y>1.2)     {state = 6; return;}
 }
 
 /************** Motion Code *****************/
@@ -251,8 +278,7 @@ void turnRight(float orientation) {
 /************** Sensor Code ******************/
 
 /** senseObstacle (4/14/2016 Austin)
- * Determines if the obsticle exist based on the ultrasonic reading
- * Caution: need to modify for better path finding, does not remember past values */ 
+ * Determines if the obsticle exist based on the ultrasonic reading */ 
 bool senseObstacle() {
   float inches_side;
   duration_side   = ping(trig_right_side,ultrasound_side_pin);
@@ -271,14 +297,16 @@ void RFLoop() {
 //     Serial.print(marker.x); Serial.print("|");
 //     Serial.print(marker.y); Serial.print("|");
 //     Serial.println(marker.theta);
+      rf_success = true;
       analogWrite(LED, 0); //turn the LED off when it is receiving the signal
   }
   else
   {
-    //rf.sendMessage("\nPX: Marker not register");
-    analogWrite(LED, 235);  //turn the LED on when ping fails
-    Serial.println("PX: Marker is not registering");
-    //delay(300);
+      //rf.sendMessage("\nPX: Marker not register");
+      rf_success = false;
+      analogWrite(LED, 235);  //turn the LED on when ping fails
+      Serial.println("PX: Marker is not registering");
+      //delay(300);
   }
 }
 
