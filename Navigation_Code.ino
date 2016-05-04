@@ -187,7 +187,7 @@ void control(float theta_ref, float theta_desired){
 
 /** driveForwardYDirection (4/14/2016 Austin) */ 
 void driveForwardYDirection(float y_goal, float x_ref, bool positive_dir) {
-  float tolerance = .05;
+  float tolerance = .01;
   float error, y_ref;
   double theta;
   if (positive_dir){ //moving up the field
@@ -225,22 +225,22 @@ void driveForwardYDirectionSensor() {
 /** turnLeft (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the left */ 
 void turnLeft(float orientation) {
-  float tolerance = (pi/12);
+  float tolerance = 0.05;
   while (marker.theta - orientation < -(tolerance)) {
     RFLoop();
     motorTurnLeft();
-    delay(200);
+    //delay(200);
   }
 }
 
 /** turnRight (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the right */ 
 void turnRight(float orientation) {
-  float tolerance = (pi/12);
+  float tolerance = 0.05;
   while (marker.theta - orientation > tolerance) {
     RFLoop();
     motorTurnRight();
-    delay(200);
+    //delay(200);
   }
 }
 
@@ -272,7 +272,7 @@ void RFLoop() {
   {
     rf.sendMessage("\nPX: Marker not register");
     Serial.println("PX: Marker is not registering");
-    delay(300);
+    //delay(300);
   }
 }
 
