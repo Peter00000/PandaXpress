@@ -14,12 +14,12 @@ const int repeatNo  = 5;      //for multiple ultrasonic read
 const int interval  = 200;    //ms wait
 const long upper    = 1200;   //filter out unwanted data in ultrasonic reading
 const long lower    = 150;    //only apply when averaging multiple trials
-const float arm_width   = 13.75;   //inches between left and right ultrasonic sensor
-const float arm_height  = 13;   //inches between top ultrasonic and ground
-  float blackCutOff = .25;   // this should be tested with the boulder
-  float greenCutOff = .45;
-const int k = 200;              //constant relate delta_angle to delta_PWM
-const int maxCount = 3;
+const float arm_width   = 13.75;    //inches between left and right ultrasonic sensor
+const float arm_height  = 13;       //inches between top ultrasonic and ground
+const float blackCutOff = .25;      // this should be tested with the boulder
+const float greenCutOff = .45;
+const int k = 200;            //constant relate delta_angle to delta_PWM
+const int maxCount = 3;       //number of consecutive no-obstacles points to determine a space
 
 /************** Pin Variables ***************/
 int in3 = 2;  int in4 = 3;  
@@ -194,14 +194,14 @@ void motorTurnLeft() {
 
 /** control (4/29/2016 Yichao) 
 * change the wheel power supply based on the difference in theta */
-void control(float theta_ref, float theta_desired){
+void control(float theta_desired){
       float delta_theta   = marker.theta - theta_desired; //calculate difference between current and desired angle
       int delta_PWM     = (int)(abs(delta_theta*k));  //calculate speed difference based on angle differnece
-      if(delta_PWM>127){
-            if(delta_theta > theta_ref){
-                  motorTurnRight(); return;}
+      if(delta_PWM>127){      //greater than 127 means one wheel will stop running
+            if(delta_theta > 0){  
+                  motorTurnRight(); return;} //instead do a zero-point turn
             else{ motorTurnLeft(); return;}}
-      if (delta_theta > theta_ref) 
+      if (delta_theta > 0) 
             motorControl(255,255-delta_PWM);
       else  motorControl(255-delta_PWM,255);
 }
@@ -212,7 +212,7 @@ void driveForwardXDirection(float x_goal, float y_ref) {
     RFLoop();
     float error = marker.y-y_ref;
     float theta = -0.5*atan(error);
-    control(0, theta);
+    control(theta);
   }
   motorControl(0,0); //stop the motor when the destination is reached
 }
@@ -225,21 +225,22 @@ void driveForwardYDirection(float y_goal, float x_ref, bool positive_dir) {
   if (positive_dir){ //moving up the field
       while (marker.y - y_goal < -(tolerance)) {
             RFLoop();
-            error = marker.y-y_ref;
+            error = y_ref-marker.y;
             theta = -1/2*atan(error) + pi/2;
-            control(pi/2, theta);
+            control(theta);
       }
   } else { //moving down the field
       while(marker.y - y_goal > tolerance){
             RFLoop();
             error = marker.y-y_ref;
             theta = -1/2*atan(error) -pi/2;
-            control(-pi/2, theta);
+            control(theta);
       }
   }
   motorControl(0,0); //stop the motor when the destination is reached
 }
 
+/** move through the obstacles (5/03/2016 Paulo) */
 void driveForwardYDirectionSensor() {
   bool obstacle;
   while (true) {
@@ -251,6 +252,7 @@ void driveForwardYDirectionSensor() {
   } 
   //motorBack();
   //delay(1000);
+  //motorControl(0,0);
 }
 
 /** turnLeft (4/14/2016 Austin)
@@ -277,7 +279,7 @@ void turnRight(float orientation) {
 
 /************** Sensor Code ******************/
 
-/** senseObstacle (4/14/2016 Austin)
+/** senseObstacle (5/03/2016 Paulo)
  * Determines if the obsticle exist based on the ultrasonic reading */ 
 bool senseObstacle() {
   float inches_side;
