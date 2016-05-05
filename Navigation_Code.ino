@@ -300,8 +300,10 @@ bool senseObstacle() {
   float inches_side;
   duration_side   = ping(trig_right_side,ultrasound_side_pin);
   inches_side     = microsecondsToInches(duration_side);
-  if (inches_side < 17) {return true;}
+  if (inches_side < 15) {return true;}
   else {return false;}
+    rf.sendMessage("\nObstacle: ");
+  rf.sendMessage(inches_side);
 }
 
 /**RFLoop (Keystone)
