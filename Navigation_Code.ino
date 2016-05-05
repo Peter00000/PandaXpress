@@ -105,9 +105,9 @@ void loop() {
       state = 6;  break;  
       
     case 6: //navigating toward the boulder and conduct experiment
-      driveForwardXDirection(); //add the boulder position
-      //motorStraight();
-      //delay(1200);
+      driveForwardXDirection(3.1,1.4); //add the boulder position
+      motorStraight();
+      delay(400);
       motorControl(0,0); //stop the motor running before measure
       allSensors();     //mission code
       state = 7;  break;
