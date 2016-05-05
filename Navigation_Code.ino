@@ -242,17 +242,24 @@ void driveForwardYDirection(float y_goal, float x_ref, bool positive_dir) {
 
 /** move through the obstacles (5/03/2016 Paulo) */
 void driveForwardYDirectionSensor() {
-  bool obstacle;
-  while (true) {
-    motorStraight();
-    obstacle = senseObstacle();
-    if(!obstacle) obstacleCount++;
-    else obstacleCount = 0;
-    if(obstacleCount > maxCount) break;
-  } 
-  //motorBack();
-  //delay(1000);
-  //motorControl(0,0);
+ bool obstacle;
+ RFLoop();
+ float starty = marker.y;
+ float startx = marker.x;
+ long time1;
+ while (marker.y<1.8) {
+   driveForwardYDirection(starty + 0.2,startx,true);
+   obstacle = senseObstacle();
+   if(!obstacle){ 
+     obstacleCount++;
+   }
+   else {
+     obstacleCount = 0;
+    }
+   if(obstacleCount > maxCount) { 
+   break;
+   }
+ }
 }
 
 /** turnLeft (4/14/2016 Austin)
