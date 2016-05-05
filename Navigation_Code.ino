@@ -19,8 +19,8 @@ const float arm_height  = 13;       //inches between top ultrasonic and ground
 const float blackCutOff = .33;      // this should be tested with the boulder
 const float greenCutOff = .50;
 const float greenLimit = .38;
-const int k = 200;            //constant relate delta_angle to delta_PWM
-const int maxCount = 4;       //number of consecutive no-obstacles points to determine a space
+int k = 200;            //constant relate delta_angle to delta_PWM
+const int maxCount = 5;       //number of consecutive no-obstacles points to determine a space
 
 /************** Pin Variables ***************/
 int in3 = 2;  int in4 = 3;  
@@ -77,11 +77,12 @@ void loop() {
 
     case 2:       //move rover past the obstacles
       turnLeft(pi/2);
+      motorTurnLeft(); delay(300);
       driveForwardYDirectionSensor(); //scans for an opening between obsticles
       turnLeft(pi-0.07);
       motorTurnLeft(); delay(700);
       turnLeft(-pi/2);
-      driveForwardYDirection(marker.y - 0.3, .75, false);
+      driveForwardYDirection(marker.y - 0.35, .75, false);
       turnLeft(0);
       driveForwardXDirection(1.6,marker.y);
       state = 3;  break;
@@ -100,20 +101,22 @@ void loop() {
       
     case 4: //moving in the middle of field
       turnLeft(0);
-      driveForwardXDirection(2.8,1);
+      driveForwardXDirection(2.7,1);
       state = 5;      break;
       
     case 5://OSV is now at the x value of the Terrain Site
       turnLeft(pi/2);
-      driveForwardYDirection(1.32,2.8,true);
+      driveForwardYDirection(1.32,2.7,true);
       turnRight(0); //facing the boulder
       state = 6;  break;  
       
     case 6: //navigating toward the boulder and conduct experiment
-      driveForwardXDirection(3.1,1.32); //add the boulder position
+      k = 380;
+      driveForwardXDirection(3.25,1.32);
       motorStraight();
-      delay(400);
+      delay(800);
       motorControl(0,0); //stop the motor running before measure
+      delay(800);
       allSensors();     //mission code
       state = 7;  break;
     
@@ -255,7 +258,7 @@ void driveForwardYDirectionSensor() {
  float starty = marker.y;
  float startx = marker.x;
  while (marker.y<1.8) {
-   driveForwardYDirection(starty + 0.15,startx,true);
+   driveForwardYDirection(starty + 0.10,0.75,true);
    starty = marker.y;
    obstacle = senseObstacle();
    if(!obstacle){ 
@@ -272,7 +275,7 @@ void driveForwardYDirectionSensor() {
 /** turnLeft (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the left */ 
 void turnLeft(float orientation) {
-  float tolerance = (pi/5);
+  float tolerance = (pi/6);
   while (marker.theta - orientation < -(tolerance)) {
     RFLoop();
     motorTurnLeft(); 
@@ -284,7 +287,7 @@ void turnLeft(float orientation) {
 /** turnRight (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the right */ 
 void turnRight(float orientation) {
-  float tolerance = (pi/5);
+  float tolerance = (pi/6);
   while (marker.theta - orientation > tolerance) {
     RFLoop();
     motorTurnRight();
@@ -303,7 +306,7 @@ bool senseObstacle() {
   inches_side     = microsecondsToInches(duration_side);
   rf.sendMessage("\nObstacle: ");
   rf.sendMessage(inches_side);
-  if (inches_side < 15) {return true;}
+  if (inches_side < 20) {return true;}
   else {return false;}
 
 }
