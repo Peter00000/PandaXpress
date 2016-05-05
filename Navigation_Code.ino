@@ -81,7 +81,7 @@ void loop() {
       turnLeft(pi-0.07);
       motorTurnLeft(); delay(700);
       turnLeft(-pi/2);
-      driveForwardYDirection(marker.y - 0.4, .75, false);
+      driveForwardYDirection(marker.y - 0.3, .75, false);
       turnLeft(0);
       driveForwardXDirection(1.6,marker.y);
       state = 3;  break;
@@ -105,12 +105,12 @@ void loop() {
       
     case 5://OSV is now at the x value of the Terrain Site
       turnLeft(pi/2);
-      driveForwardYDirection(1.4,2.8,true);
+      driveForwardYDirection(1.32,2.8,true);
       turnRight(0); //facing the boulder
       state = 6;  break;  
       
     case 6: //navigating toward the boulder and conduct experiment
-      driveForwardXDirection(3.1,1.4); //add the boulder position
+      driveForwardXDirection(3.1,1.32); //add the boulder position
       motorStraight();
       delay(400);
       motorControl(0,0); //stop the motor running before measure
@@ -301,10 +301,11 @@ bool senseObstacle() {
   float inches_side;
   duration_side   = ping(trig_right_side,ultrasound_side_pin);
   inches_side     = microsecondsToInches(duration_side);
+  rf.sendMessage("\nObstacle: ");
+  rf.sendMessage(inches_side);
   if (inches_side < 15) {return true;}
   else {return false;}
-    rf.sendMessage("\nObstacle: ");
-  rf.sendMessage(inches_side);
+
 }
 
 /**RFLoop (Keystone)
