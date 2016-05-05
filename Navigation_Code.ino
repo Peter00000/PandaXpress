@@ -76,7 +76,7 @@ void loop() {
       turnLeft(pi/2);
       driveForwardYDirectionSensor(); //scans for an opening between obsticles
       turnRight(0);
-      driveForwardXDirection(marker.x, 1.6);
+      driveForwardXDirection(1.6,marker.y);
       state = 3;  break;
       
     case 3:       //move to the center of field
