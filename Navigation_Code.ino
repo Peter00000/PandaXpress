@@ -371,9 +371,9 @@ void colorSensor(){
   voltage= (5.0*photoresistorSignal)/1023;           //convert the signal to a scale of 0 to 5 V
   Serial.println(voltage);
   if(voltage > blackCutOff && voltage < greenCutOff ){
-      rf.sendMessage("Green");
+      rf.sendMessage("The Terrain is Green.");
   } else if(voltage < blackCutOff){
-      rf.sendMessage("Black");
+      rf.sendMessage("The Terrain is Black.");
   }
   analogWrite(LED,0);
 }
