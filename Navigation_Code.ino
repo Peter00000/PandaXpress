@@ -20,7 +20,7 @@ const float blackCutOff = .33;      // this should be tested with the boulder
 const float greenCutOff = .50;
 const float greenLimit = .38;
 const int k = 200;            //constant relate delta_angle to delta_PWM
-const int maxCount = 3;       //number of consecutive no-obstacles points to determine a space
+const int maxCount = 4;       //number of consecutive no-obstacles points to determine a space
 
 /************** Pin Variables ***************/
 int in3 = 2;  int in4 = 3;  
@@ -63,9 +63,11 @@ void loop() {
   RFLoop();
   switch(state) {
     case 0: //OSV move toward bottom-left corner (origin)
+      if(marker.x<0.3) {
+            turnLeft(0);
+            driveForwardXDirection(0.5,marker.y);}
       turnRight(-pi/2);
-      //if(marker.y> 0.4) 
-            driveForwardYDirection(0.3, marker.x, false);
+      driveForwardYDirection(0.3, marker.x, false);
       state = 1;  break;
       
     case 1: //OSV move to edge of landing zone
@@ -252,7 +254,6 @@ void driveForwardYDirectionSensor() {
  RFLoop();
  float starty = marker.y;
  float startx = marker.x;
- long time1;
  while (marker.y<1.8) {
    driveForwardYDirection(starty + 0.15,startx,true);
    starty = marker.y;
