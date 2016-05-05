@@ -329,7 +329,9 @@ void RFLoop() {
       //rf.sendMessage("\nPX: Marker not register");
       rf_success = false;
       analogWrite(LED, 235);  //turn the LED on when ping fails
-      Serial.println("PX: Marker is not registering");
+      motorBack();      delay(1000);
+      motorleft();      delay(300);
+      motorControl(0,0);
       //delay(300);
   }
 }
