@@ -16,8 +16,9 @@ const long upper    = 1200;   //filter out unwanted data in ultrasonic reading
 const long lower    = 150;    //only apply when averaging multiple trials
 const float arm_width   = 13.75;    //inches between left and right ultrasonic sensor
 const float arm_height  = 13;       //inches between top ultrasonic and ground
-const float blackCutOff = .25;      // this should be tested with the boulder
-const float greenCutOff = .45;
+const float blackCutOff = .33;      // this should be tested with the boulder
+const float greenCutOff = .50;
+const float greenLimit = .38;
 const int k = 200;            //constant relate delta_angle to delta_PWM
 const int maxCount = 3;       //number of consecutive no-obstacles points to determine a space
 
@@ -370,7 +371,7 @@ void colorSensor(){
   photoresistorSignal = analogRead(photoresist_pin); //take the reading at analog input pin
   voltage= (5.0*photoresistorSignal)/1023;           //convert the signal to a scale of 0 to 5 V
   Serial.println(voltage);
-  if(voltage > blackCutOff && voltage < greenCutOff ){
+  if(voltage > greenLimit && voltage < greenCutOff ){
       rf.sendMessage("Green");
   } else if(voltage < blackCutOff){
       rf.sendMessage("Black");
