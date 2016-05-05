@@ -98,7 +98,7 @@ void loop() {
       
     case 5://OSV is now at the x value of the Terrain Site
       turnLeft(pi/2);
-      driveForwardYDirection(1.3,3.1,true);
+      driveForwardYDirection(1.4,3.1,true);
       turnRight(0); //facing the boulder
       state = 6;  break;  
       
@@ -249,11 +249,11 @@ void driveForwardYDirectionSensor() {
  long time1;
  while (marker.y<1.8) {
    driveForwardYDirection(starty + 0.2,startx,true);
+   starty = marker.y;
    obstacle = senseObstacle();
    if(!obstacle){ 
      obstacleCount++;
-   }
-   else {
+   }  else {
      obstacleCount = 0;
     }
    if(obstacleCount > maxCount) { 
@@ -265,10 +265,11 @@ void driveForwardYDirectionSensor() {
 /** turnLeft (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the left */ 
 void turnLeft(float orientation) {
-  float tolerance = 0.05;
+  float tolerance = (pi/5);
   while (marker.theta - orientation < -(tolerance)) {
     RFLoop();
-    motorTurnLeft();
+    motorTurnLeft(); 
+    //motorControl(0,0); delay(200);
   }
   motorControl(0,0); //stop the motor when the angle is reached
 }
@@ -276,10 +277,11 @@ void turnLeft(float orientation) {
 /** turnRight (4/14/2016 Austin)
  * Turn the OSV to the desired orientation to the right */ 
 void turnRight(float orientation) {
-  float tolerance = 0.05;
+  float tolerance = (pi/5);
   while (marker.theta - orientation > tolerance) {
     RFLoop();
     motorTurnRight();
+    //motorControl(0,0); delay(200);
   }
   motorControl(0,0); //stop the motor when the angle is reached
 }
