@@ -69,13 +69,15 @@ void loop() {
       
     case 1: //OSV move to edge of landing zone
       turnLeft(0);
-      driveForwardXDirection(.7, 0.3); //arrive at the edge of landing zone
+      driveForwardXDirection(.75, 0.3); //arrive at the edge of landing zone
       state = 2;  break; 
 
     case 2:       //move rover past the obstacles
       turnLeft(pi/2);
       driveForwardYDirectionSensor(); //scans for an opening between obsticles
-      turnRight(0);
+      turnLeft(-pi/2);
+      driveForwardYDirection(marker.y - 0.2, .75, false)
+      turnLeft(0);
       driveForwardXDirection(1.6,marker.y);
       state = 3;  break;
       
@@ -93,18 +95,19 @@ void loop() {
       
     case 4: //moving in the middle of field
       turnLeft(0);
-      driveForwardXDirection(3.1,1);
+      driveForwardXDirection(2.8,1);
       state = 5;      break;
       
     case 5://OSV is now at the x value of the Terrain Site
       turnLeft(pi/2);
-      driveForwardYDirection(1.4,3.1,true);
+      driveForwardYDirection(1.4,2.8,true);
       turnRight(0); //facing the boulder
       state = 6;  break;  
       
     case 6: //navigating toward the boulder and conduct experiment
-      motorStraight();
-      delay(1200);
+      driveForwardXDirection(); //add the boulder position
+      //motorStraight();
+      //delay(1200);
       motorControl(0,0); //stop the motor running before measure
       allSensors();     //mission code
       state = 7;  break;
@@ -248,7 +251,7 @@ void driveForwardYDirectionSensor() {
  float startx = marker.x;
  long time1;
  while (marker.y<1.8) {
-   driveForwardYDirection(starty + 0.2,startx,true);
+   driveForwardYDirection(starty + 0.15,startx,true);
    starty = marker.y;
    obstacle = senseObstacle();
    if(!obstacle){ 
@@ -294,7 +297,7 @@ bool senseObstacle() {
   float inches_side;
   duration_side   = ping(trig_right_side,ultrasound_side_pin);
   inches_side     = microsecondsToInches(duration_side);
-  if (inches_side < 12) {return true;}
+  if (inches_side < 17) {return true;}
   else {return false;}
 }
 
